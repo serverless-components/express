@@ -1,0 +1,21 @@
+{
+  "name": "@serverless/aws-express",
+  "version": "1.0.0",
+  "main": "./serverless.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --fix --cache"
+  },
+  "author": "Serverless, Inc.",
+  "license": "Apache",
+  "dependencies": {
+    "adm-zip": "^0.4.13",
+    "fs-extra": "^8.1.0",
+    "globby": "^10.0.1",
+    "p-retry": "^4.2.0",
+    "ramda": "^0.26.0"
+  }
+}
