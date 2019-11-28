@@ -23,6 +23,75 @@ const getClients = (credentials, region) => {
   }
 }
 
+const getConfig = (inputs, state) => {
+  if (!inputs.src) {
+    throw new Error(`Missing "src" input.`)
+  }
+  const id = generateId()
+
+  const config = {
+    src: inputs.src,
+    region: inputs.region || 'us-east-1',
+    role: state.role || {},
+    lambda: state.lambda || {},
+    apig: state.apig || {}
+  }
+
+  if (!config.role.name) {
+    config.role = {
+      name: `express-${id}`
+    }
+  }
+
+  if (!config.lambda.name) {
+    config.lambda = {
+      name: `express-${id}`,
+      description: `Express App`,
+      handler: 'index.handler',
+      memory: 3008,
+      timeout: 900,
+      runtime: 'nodejs12.x'
+    }
+  }
+
+  if (!config.apig.name) {
+    config.apig = {
+      name: `express-${id}`,
+      stage: 'production',
+      description: 'Express API',
+      endpoints: [
+        {
+          path: '/',
+          method: 'ANY'
+        },
+        {
+          path: '/{proxy+}',
+          method: 'ANY'
+        }
+      ]
+    }
+  }
+
+  if (inputs.env) {
+    config.lambda.env = inputs.env
+  }
+
+  if (inputs.memory) {
+    config.lambda.memory = inputs.memory
+  }
+
+  if (inputs.timeout) {
+    config.lambda.timeout = inputs.timeout
+  }
+
+  if (inputs.description) {
+    config.lambda.description = inputs.description
+    config.apig.description = inputs.description
+  }
+
+  return config
+}
+
 const getRole = async (clients, config) => {
   try {
     const res = await clients.iam.getRole({ RoleName: config.role.name }).promise()
@@ -64,7 +133,7 @@ const createRole = async (clients, config) => {
     })
     .promise()
 
-  await sleep(10000)
+  // await sleep(10000)
 
   return { name: res.Role.RoleName, arn: res.Role.Arn }
 }
@@ -100,13 +169,13 @@ const createLambda = async (clients, config) => {
   const params = {
     FunctionName: config.lambda.name,
     Code: {},
-    Description: config.lambda.description || 'Express Lambda',
-    Handler: 'index.handler',
-    MemorySize: config.lambda.memory || 3008,
+    Description: config.lambda.description,
+    Handler: config.lambda.handler,
+    MemorySize: config.lambda.memory,
     Publish: false,
     Role: config.role.arn,
-    Runtime: 'nodejs12.x',
-    Timeout: config.lambda.timeout || 900,
+    Runtime: config.lambda.runtime,
+    Timeout: config.lambda.timeout,
     Environment: {
       Variables: config.lambda.env
     }
@@ -118,18 +187,25 @@ const createLambda = async (clients, config) => {
 
   params.Code.ZipFile = await readFile(config.lambda.zipPath)
 
-  const res = await clients.lambda.createFunction(params).promise()
-
-  return {
-    name: res.FunctionName,
-    description: res.Description,
-    timeout: res.Timeout,
-    runtime: res.Runtime,
-    handler: res.Handler,
-    memory: res.MemorySize,
-    hash: res.CodeSha256,
-    env: res.Environment ? res.Environment.Variables : {},
-    arn: res.FunctionArn
+  try {
+    const res = await clients.lambda.createFunction(params).promise()
+    return {
+      name: res.FunctionName,
+      description: res.Description,
+      timeout: res.Timeout,
+      runtime: res.Runtime,
+      handler: res.Handler,
+      memory: res.MemorySize,
+      hash: res.CodeSha256,
+      env: res.Environment ? res.Environment.Variables : {},
+      arn: res.FunctionArn
+    }
+  } catch (e) {
+    if (e.message.includes(`The role defined for the function cannot be assumed by Lambda`)) {
+      await sleep(1000)
+      return createLambda(clients, config)
+    }
+    throw e
   }
 }
 
@@ -230,15 +306,15 @@ const packageExpress = async (src) => {
       .substring(6)}.zip`
   )
 
-  const shimsDir = path.join(__dirname, 'shims')
+  const includeDirectory = path.join(__dirname, 'include')
   const include = [
-    path.join(shimsDir, 'binary-case.js'),
-    path.join(shimsDir, 'index.js'),
-    path.join(shimsDir, 'media-typer.js'),
-    path.join(shimsDir, 'middleware.js'),
-    path.join(shimsDir, 'mime-db.json'),
-    path.join(shimsDir, 'mime-types.js'),
-    path.join(shimsDir, 'type-is.js')
+    path.join(includeDirectory, 'binary-case.js'),
+    path.join(includeDirectory, 'index.js'),
+    path.join(includeDirectory, 'media-typer.js'),
+    path.join(includeDirectory, 'middleware.js'),
+    path.join(includeDirectory, 'mime-db.json'),
+    path.join(includeDirectory, 'mime-types.js'),
+    path.join(includeDirectory, 'type-is.js')
   ]
 
   await pack(inputDirPath, outputFilePath, include)
@@ -494,6 +570,7 @@ module.exports = {
   generateId,
   sleep,
   getClients,
+  getConfig,
   getRole,
   createRole,
   getLambda,

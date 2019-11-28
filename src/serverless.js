@@ -1,8 +1,7 @@
 const { Component } = require('@serverless/core')
 const {
-  sleep,
-  generateId,
   getClients,
+  getConfig,
   getRole,
   createRole,
   getLambda,
@@ -19,51 +18,9 @@ const {
 
 class AwsExpress extends Component {
   async deploy(inputs) {
-    if (!inputs.src) {
-      throw new Error(`Missing "src" input.`)
-    }
-
     await this.status(`Initializing Express App`)
 
-    const id = generateId()
-
-    const config = {
-      src: inputs.src,
-      region: inputs.region || 'us-east-1',
-      role: this.state.role || {},
-      lambda: this.state.lambda || {},
-      apig: this.state.apig || {}
-    }
-
-    if (!config.role.name) {
-      await this.debug(`Role not found in state`)
-      config.role.name = `express-${id}`
-    }
-
-    if (!config.lambda.name) {
-      await this.debug(`Lambda not found in state`)
-      config.lambda.name = `express-${id}`
-    }
-
-    if (!config.apig.name) {
-      await this.debug(`APIG not found in state`)
-      config.apig = {
-        name: `express-${id}`,
-        stage: 'production',
-        description: 'Express API',
-        endpoints: [
-          {
-            path: '/',
-            method: 'ANY'
-          },
-          {
-            path: '/{proxy+}',
-            method: 'ANY'
-          }
-        ]
-      }
-    }
-
+    const config = getConfig(inputs, this.state)
     const clients = getClients(this.credentials.aws, config.region)
 
     await this.status(`Packaging Express App`)
