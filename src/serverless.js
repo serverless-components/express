@@ -103,7 +103,7 @@ class AwsExpress extends Component {
       await this.debug(`Lambda code updated from ${config.src}`)
     }
 
-    await sleep(2000)
+    // await sleep(2000)
 
     await this.debug(`Creating integrations`)
     config.apig = await createIntegrations(clients, config)
