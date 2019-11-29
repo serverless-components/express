@@ -53,6 +53,13 @@ class AwsExpress extends Component {
       await this.debug(`Creating lambda ${config.lambda.name}`)
       config.lambda = await createLambda(clients, config)
       await this.debug(`Lambda created with ARN ${config.lambda.arn}`)
+
+      await this.debug(`Creating integrations`)
+      config.apig = await createIntegrations(clients, config)
+
+      await this.status(`Finalizing`)
+      await this.debug(`Creating Deployment`)
+      config.apig = await createDeployment(clients, config)
     } else {
       await this.status(`Updating Lambda`)
       await this.debug(`Updating lambda code from ${config.src}`)
@@ -60,36 +67,12 @@ class AwsExpress extends Component {
       await this.debug(`Lambda code updated from ${config.src}`)
     }
 
-    // await sleep(2000)
-
-    await this.debug(`Creating integrations`)
-    config.apig = await createIntegrations(clients, config)
-
-    await this.status(`Finalizing`)
-    await this.debug(`Creating Deployment`)
-    config.apig = await createDeployment(clients, config)
-
     config.url = `https://${config.apig.id}.execute-api.${config.region}.amazonaws.com/${config.apig.stage}`
-    config.created = true
 
     this.state = config
     await this.save()
 
     return { url: config.url }
-  }
-
-  async update(inputs) {
-    if (!this.state.created) {
-      throw new Error(
-        'Express infrastructure was not deployed. Please run "serverless deploy" first.'
-      )
-    }
-    const clients = getClients(this.credentials.aws, inputs.region)
-    await this.status(`Updating Code`)
-    await this.debug(`Express Infrastructure already created. Updating code from ${inputs.src}.`)
-    this.state.lambda.zipPath = await packageExpress(inputs.src)
-    await updateLambdaCode(clients, this.state)
-    return { url: this.state.url }
   }
 
   async remove() {

@@ -133,8 +133,6 @@ const createRole = async (clients, config) => {
     })
     .promise()
 
-  // await sleep(10000)
-
   return { name: res.Role.RoleName, arn: res.Role.Arn }
 }
 
@@ -202,6 +200,7 @@ const createLambda = async (clients, config) => {
     }
   } catch (e) {
     if (e.message.includes(`The role defined for the function cannot be assumed by Lambda`)) {
+      // we need to wait around 9 seconds after the role is craated before it can be assumed
       await sleep(1000)
       return createLambda(clients, config)
     }
