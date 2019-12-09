@@ -1,5 +1,5 @@
 {
-  "name": "@serverless/aws-express",
+  "name": "@serverless/express",
   "version": "1.0.0",
   "main": "./serverless.js",
   "publishConfig": {
