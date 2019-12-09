@@ -38,9 +38,9 @@ AWS_SECRET_ACCESS_KEY=XXX
 
 ```yml
 # serverless.yml
-
-app: eahefnawy/myApp
 component: aws-express
+org: eahefnawy
+app: myApp
 name: myExpress
 inputs:
   src: ./src
