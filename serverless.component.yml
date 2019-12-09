@@ -1,6 +1,6 @@
 name: express
-version: 0.0.2
-author: ac360
+version: 0.0.3
+author: eahefnawy
 org: serverlessinc
 description: Deploys Serverless Express Apps
 keywords: aws, serverless, express
