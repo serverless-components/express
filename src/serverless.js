@@ -16,11 +16,11 @@ const {
   removeApi
 } = require('./utils')
 
-class AwsExpress extends Component {
+class Express extends Component {
   async deploy(inputs) {
     await this.status(`Initializing Express App`)
 
-    const config = getConfig(inputs, this.state)
+    const config = getConfig(inputs, this.state, this.org, this.stage, this.app, this.name)
     const clients = getClients(this.credentials.aws, config.region)
 
     await this.status(`Packaging Express App`)
@@ -100,4 +100,4 @@ class AwsExpress extends Component {
   }
 }
 
-module.exports = AwsExpress
+module.exports = Express
