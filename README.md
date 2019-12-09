@@ -1,6 +1,6 @@
-# aws-express
+# Express
 
-Easily provision Express apps on AWS using [Serverless Components](https://github.com/serverless/components).
+Easily provision Express apps on AWS.
 
 &nbsp;
 

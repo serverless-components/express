@@ -1,9 +1,10 @@
-name: aws-express
-# version: 0.0.4
-org: eahefnawy
-author: serverless
+name: express
+version: 0.0.2
+author: ac360
+org: serverlessinc
 description: Deploys Serverless Express Apps
 keywords: aws, serverless, express
 repo: https://github.com/owner/project
 readme: ''
 license: MIT
+main: ./src

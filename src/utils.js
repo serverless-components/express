@@ -23,7 +23,7 @@ const getClients = (credentials, region) => {
   }
 }
 
-const getConfig = (inputs, state) => {
+const getConfig = (inputs, state, org, stage, app, name) => {
   if (!inputs.src) {
     throw new Error(`Missing "src" input.`)
   }
@@ -39,14 +39,15 @@ const getConfig = (inputs, state) => {
 
   if (!config.role.name) {
     config.role = {
-      name: `express-${id}`
+      name: `express-${id}`,
+      description: `Serverless Express app role for ${org} - ${stage} - ${app} - ${name}`,
     }
   }
 
   if (!config.lambda.name) {
     config.lambda = {
       name: `express-${id}`,
-      description: `Express App`,
+      description: `Serverless Express app Lambda for ${org} - ${stage} - ${app} - ${name}`,
       handler: 'index.handler',
       memory: 3008,
       timeout: 900,
@@ -58,7 +59,7 @@ const getConfig = (inputs, state) => {
     config.apig = {
       name: `express-${id}`,
       stage: 'production',
-      description: 'Express API',
+      description: `Serverless Express app API for ${org} - ${stage} - ${app} - ${name}`,
       endpoints: [
         {
           path: '/',
