@@ -285,6 +285,8 @@ if (process.env.NODE_ENV === 'test') {
 }
 
 function handler(event, context) {
+  require('./sdk')
+
   const app = require('./app')
   const server = createServer(app)
   return proxy(server, event, context)
