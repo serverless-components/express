@@ -1,7 +1,7 @@
 name: express
-version: 0.0.3
+# version: 0.0.3
 author: eahefnawy
-org: serverlessinc
+org: eahefnawy
 description: Deploys Serverless Express Apps
 keywords: aws, serverless, express
 repo: https://github.com/owner/project

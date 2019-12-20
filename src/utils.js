@@ -40,7 +40,7 @@ const getConfig = (inputs, state, org, stage, app, name) => {
   if (!config.role.name) {
     config.role = {
       name: `express-${id}`,
-      description: `Serverless Express app role for ${org} - ${stage} - ${app} - ${name}`,
+      description: `Serverless Express app role for ${org} - ${stage} - ${app} - ${name}`
     }
   }
 
@@ -51,7 +51,8 @@ const getConfig = (inputs, state, org, stage, app, name) => {
       handler: 'index.handler',
       memory: 3008,
       timeout: 900,
-      runtime: 'nodejs12.x'
+      runtime: 'nodejs12.x',
+      env: {}
     }
   }
 
@@ -314,7 +315,20 @@ const packageExpress = async (src) => {
     path.join(includeDirectory, 'middleware.js'),
     path.join(includeDirectory, 'mime-db.json'),
     path.join(includeDirectory, 'mime-types.js'),
-    path.join(includeDirectory, 'type-is.js')
+    path.join(includeDirectory, 'type-is.js'),
+
+    // dev-mode
+    path.join(includeDirectory, 'centra.js'),
+    path.join(includeDirectory, 'CentraRequest.js'),
+    path.join(includeDirectory, 'CentraResponse.js'),
+    path.join(includeDirectory, 'find-port.js'),
+    path.join(includeDirectory, 'get-port.js'),
+    path.join(includeDirectory, 'json-buffer.js'),
+    path.join(includeDirectory, 'phin.js'),
+    path.join(includeDirectory, 'sdk.js'),
+    path.join(includeDirectory, 'streamLog.js'),
+    path.join(includeDirectory, 'sync-rpc.js'),
+    path.join(includeDirectory, 'worker.js')
   ]
 
   await pack(inputDirPath, outputFilePath, include)
