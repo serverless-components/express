@@ -23,10 +23,12 @@ class Express extends Component {
     const config = getConfig(inputs, this.state, this.org, this.stage, this.app, this.name)
 
     // add env vars required for the sdk to work
-    config.lambda.env.SERVERLESS_PLATFORM_STAGE = process.env.SERVERLESS_PLATFORM_STAGE
-    config.lambda.env.SERVERLESS_ACCESS_KEY = this.accessKey
-    config.lambda.env.SERVERLESS_ORG = this.org
-    config.lambda.env.SERVERLESS_COMPONENT_INSTANCE_ID = `${this.org}.${this.app}.${this.stage}.${this.name}`
+    config.lambda.env = {
+      SERVERLESS_PLATFORM_STAGE: process.env.SERVERLESS_PLATFORM_STAGE,
+      SERVERLESS_ACCESS_KEY: this.accessKey,
+      SERVERLESS_ORG: this.org,
+      SERVERLESS_COMPONENT_INSTANCE_ID: `${this.org}.${this.app}.${this.stage}.${this.name}`
+    }
 
     const clients = getClients(this.credentials.aws, config.region)
 
