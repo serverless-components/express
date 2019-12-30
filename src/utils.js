@@ -791,6 +791,53 @@ const deployApiDomain = async (clients, config, instance) => {
   }
 }
 
+/**
+ * Remove API Gateway Domain
+ */
+
+const removeDomainFromApig = async (clients, config) => {
+  const params = {
+    domainName: config.domain
+  }
+
+  return clients.apig.deleteDomainName(params).promise()
+}
+
+/**
+ * Remove API Gateway Domain DNS Records
+ */
+
+const removeDnsRecordsForApigDomain = async (clients, config) => {
+  const dnsRecord = {
+    HostedZoneId: config.domainHostedZoneId,
+    ChangeBatch: {
+      Changes: [
+        {
+          Action: 'DELETE',
+          ResourceRecordSet: {
+            Name: config.domain,
+            Type: 'A',
+            AliasTarget: {
+              HostedZoneId: config.apig.distributionHostedZoneId,
+              DNSName: config.apig.distributionDomainName,
+              EvaluateTargetHealth: false
+            }
+          }
+        }
+      ]
+    }
+  }
+
+  return clients.route53.changeResourceRecordSets(dnsRecord).promise()
+}
+
+const removeDomain = async (clients, config) => {
+  await Promise.all([
+    removeDomainFromApig(clients, config),
+    removeDnsRecordsForApigDomain(clients, config)
+  ])
+}
+
 module.exports = {
   generateId,
   sleep,
@@ -811,5 +858,6 @@ module.exports = {
   removeApi,
   ensureCertificate,
   getDomainHostedZoneId,
-  deployApiDomain
+  deployApiDomain,
+  removeDomain
 }

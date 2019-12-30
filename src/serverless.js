@@ -16,7 +16,8 @@ const {
   removeApi,
   ensureCertificate,
   getDomainHostedZoneId,
-  deployApiDomain
+  deployApiDomain,
+  removeDomain
 } = require('./utils')
 
 class Express extends Component {
@@ -24,9 +25,6 @@ class Express extends Component {
     await this.status(`Initializing Express App`)
 
     const config = getConfig(inputs, this.state, this.org, this.stage, this.app, this.name)
-
-    await this.debug(this.state.apig.certificateArn)
-    await this.debug(this.state.apig.domainHostedZoneId)
 
     // add env vars required for the sdk to work
     config.lambda.env = {
@@ -132,11 +130,19 @@ class Express extends Component {
     await this.debug(`Removing role`)
     await this.debug(`Removing Lambda`)
     await this.debug(`Removing APIG`)
-    await Promise.all([
+
+    const promises = [
       removeRole(clients, config),
       removeLambda(clients, config),
       removeApi(clients, config)
-    ])
+    ]
+
+    if (config.domain) {
+      await this.debug(`Removing domain`)
+      promises.push(removeDomain(clients, config))
+    }
+
+    await Promise.all(promises)
 
     this.state = {}
     await this.save()
