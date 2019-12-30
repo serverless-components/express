@@ -16,11 +16,26 @@ const getClients = (credentials, region) => {
   const iam = new AWS.IAM({ credentials, region })
   const lambda = new AWS.Lambda({ credentials, region })
   const apig = new AWS.APIGateway({ credentials, region })
+  const route53 = new AWS.Route53({ credentials, region })
+  const acm = new AWS.ACM({
+    credentials,
+    region: 'us-east-1' // ACM must be in us-east-1
+  })
+
   return {
     iam,
     lambda,
-    apig
+    apig,
+    route53,
+    acm
   }
+}
+
+const getNakedDomain = (domain) => {
+  const domainParts = domain.split('.')
+  const topLevelDomainPart = domainParts[domainParts.length - 1]
+  const secondLevelDomainPart = domainParts[domainParts.length - 2]
+  return `${secondLevelDomainPart}.${topLevelDomainPart}`
 }
 
 const getConfig = (inputs, state, org, stage, app, name) => {
@@ -32,6 +47,8 @@ const getConfig = (inputs, state, org, stage, app, name) => {
   const config = {
     src: inputs.src,
     region: inputs.region || 'us-east-1',
+    domain: inputs.domain,
+    nakedDomain: getNakedDomain(inputs.domain),
     role: state.role || {},
     lambda: state.lambda || {},
     apig: state.apig || {}
@@ -90,6 +107,9 @@ const getConfig = (inputs, state, org, stage, app, name) => {
     config.lambda.description = inputs.description
     config.apig.description = inputs.description
   }
+
+  config.domainHostedZoneId = state.domainHostedZoneId
+  config.certificateArn = state.certificateArn
 
   return config
 }
@@ -580,6 +600,197 @@ const removeApi = async (clients, config) => {
   } catch (e) {}
 }
 
+const getDomainHostedZoneId = async (clients, config) => {
+  const hostedZonesRes = await clients.route53.listHostedZonesByName().promise()
+
+  const hostedZone = hostedZonesRes.HostedZones.find(
+    // Name has a period at the end, so we're using includes rather than equals
+    (zone) => zone.Name.includes(config.nakedDomain)
+  )
+
+  if (!hostedZone) {
+    throw Error(
+      `Domain ${config.nakedDomain} was not found in your AWS account. Please purchase it from Route53 first then try again.`
+    )
+  }
+
+  return hostedZone.Id.replace('/hostedzone/', '') // hosted zone id is always prefixed with this :(
+}
+
+const getCertificateArnByDomain = async (clients, config) => {
+  const listRes = await clients.acm.listCertificates().promise()
+  const certificate = listRes.CertificateSummaryList.find(
+    (cert) => cert.DomainName === config.nakedDomain
+  )
+  return certificate && certificate.CertificateArn ? certificate.CertificateArn : null
+}
+
+const describeCertificateByArn = async (clients, certificateArn) => {
+  const certificate = await clients.acm
+    .describeCertificate({ CertificateArn: certificateArn })
+    .promise()
+  return certificate && certificate.Certificate ? certificate.Certificate : null
+}
+
+const getCertificateValidationRecord = (certificate, domain) => {
+  const domainValidationOption = certificate.DomainValidationOptions.filter(
+    (option) => option.DomainName === domain
+  )
+
+  return domainValidationOption.ResourceRecord
+}
+
+const ensureCertificate = async (clients, config, instance) => {
+  const wildcardSubDomain = `*.${config.nakedDomain}`
+
+  const params = {
+    DomainName: config.nakedDomain,
+    SubjectAlternativeNames: [config.nakedDomain, wildcardSubDomain],
+    ValidationMethod: 'DNS'
+  }
+
+  await instance.debug(`Checking if a certificate for the ${config.nakedDomain} domain exists`)
+  let certificateArn = await getCertificateArnByDomain(clients, config)
+
+  if (!certificateArn) {
+    await instance.debug(
+      `Certificate for the ${config.nakedDomain} domain does not exist. Creating...`
+    )
+    certificateArn = (await clients.acm.requestCertificate(params).promise()).CertificateArn
+  }
+
+  const certificate = await describeCertificateByArn(clients, certificateArn)
+
+  if (certificate.Status !== 'ISSUED') {
+    await instance.debug(`Validating the certificate for the ${config.nakedDomain} domain.`)
+
+    const certificateValidationRecord = getCertificateValidationRecord(
+      certificate,
+      config.nakedDomain
+    )
+
+    const recordParams = {
+      HostedZoneId: config.domainHostedZoneId,
+      ChangeBatch: {
+        Changes: [
+          {
+            Action: 'UPSERT',
+            ResourceRecordSet: {
+              Name: certificateValidationRecord.Name,
+              Type: certificateValidationRecord.Type,
+              TTL: 300,
+              ResourceRecords: [
+                {
+                  Value: certificateValidationRecord.Value
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+    await clients.route53.changeResourceRecordSets(recordParams).promise()
+  }
+
+  return certificateArn
+}
+
+const createDomainInApig = async (clients, config) => {
+  try {
+    const params = {
+      domainName: config.domain,
+      certificateArn: config.certificateArn,
+      securityPolicy: 'TLS_1_2',
+      endpointConfiguration: {
+        types: ['EDGE']
+      }
+    }
+    const res = await clients.apig.createDomainName(params).promise()
+    return res
+  } catch (e) {
+    if (e.code === 'TooManyRequestsException') {
+      await sleep(2000)
+      return createDomainInApig(clients, config)
+    }
+    throw e
+  }
+}
+
+const configureDnsForApigDomain = async (clients, config) => {
+  const dnsRecord = {
+    HostedZoneId: config.domainHostedZoneId,
+    ChangeBatch: {
+      Changes: [
+        {
+          Action: 'UPSERT',
+          ResourceRecordSet: {
+            Name: config.domain,
+            Type: 'A',
+            AliasTarget: {
+              HostedZoneId: config.apig.distributionHostedZoneId,
+              DNSName: config.apig.distributionDomainName,
+              EvaluateTargetHealth: false
+            }
+          }
+        }
+      ]
+    }
+  }
+
+  return clients.route53.changeResourceRecordSets(dnsRecord).promise()
+}
+
+/**
+ * Map API Gateway API to the created API Gateway Domain
+ */
+const mapDomainToApi = async (clients, config) => {
+  try {
+    const params = {
+      domainName: config.domain,
+      restApiId: config.apig.id,
+      basePath: '(none)',
+      stage: config.apig.stage
+    }
+    // todo what if it already exists but for a different apiId
+    return clients.apig.createBasePathMapping(params).promise()
+  } catch (e) {
+    if (e.code === 'TooManyRequestsException') {
+      await sleep(2000)
+      return mapDomainToApi(clients, config)
+    }
+    throw e
+  }
+}
+
+const deployApiDomain = async (clients, config, instance) => {
+  try {
+    await instance.debug(`Mapping domain ${config.domain} to API ID ${config.apig.id}`)
+    await mapDomainToApi(clients, config)
+  } catch (e) {
+    if (e.message === 'Invalid domain name identifier specified') {
+      await instance.debug(`Domain ${config.domain} not found in API Gateway. Creating...`)
+
+      const res = await createDomainInApig(clients, config)
+
+      config.apig.distributionHostedZoneId = res.distributionHostedZoneId
+      config.apig.distributionDomainName = res.distributionDomainName
+
+      await instance.debug(`Configuring DNS for API Gateway domain ${config.domain}.`)
+
+      await configureDnsForApigDomain(clients, config)
+
+      // retry domain deployment now that domain is created
+      return deployApiDomain(clients, config, instance)
+    }
+
+    if (e.message === 'Base path already exists for this domain name') {
+      await instance.debug(`Domain ${config.domain} is already mapped to API ID ${config.apig.id}.`)
+      return
+    }
+    throw new Error(e)
+  }
+}
+
 module.exports = {
   generateId,
   sleep,
@@ -597,5 +808,8 @@ module.exports = {
   createDeployment,
   removeRole,
   removeLambda,
-  removeApi
+  removeApi,
+  ensureCertificate,
+  getDomainHostedZoneId,
+  deployApiDomain
 }

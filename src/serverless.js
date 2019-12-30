@@ -13,7 +13,10 @@ const {
   createDeployment,
   removeRole,
   removeLambda,
-  removeApi
+  removeApi,
+  ensureCertificate,
+  getDomainHostedZoneId,
+  deployApiDomain
 } = require('./utils')
 
 class Express extends Component {
@@ -21,6 +24,9 @@ class Express extends Component {
     await this.status(`Initializing Express App`)
 
     const config = getConfig(inputs, this.state, this.org, this.stage, this.app, this.name)
+
+    await this.debug(this.state.apig.certificateArn)
+    await this.debug(this.state.apig.domainHostedZoneId)
 
     // add env vars required for the sdk to work
     config.lambda.env = {
@@ -31,6 +37,23 @@ class Express extends Component {
     }
 
     const clients = getClients(this.credentials.aws, config.region)
+
+    if (config.domain && !this.state.domain) {
+      await this.status(`Initializing Domain`)
+      await this.debug(`Setting up domain ${config.domain}`)
+
+      if (!config.domainHostedZoneId) {
+        this.state.domainHostedZoneId = await getDomainHostedZoneId(clients, config)
+        await this.save()
+        config.domainHostedZoneId = this.state.domainHostedZoneId
+      }
+
+      if (!config.certificateArn) {
+        this.state.certificateArn = await ensureCertificate(clients, config, this)
+        await this.save()
+        config.certificateArn = this.state.certificateArn
+      }
+    }
 
     await this.status(`Packaging Express App`)
     await this.debug(`Fetching role ${config.role.name}`)
@@ -76,12 +99,24 @@ class Express extends Component {
       await this.debug(`Lambda code updated from ${config.src}`)
     }
 
+    if (config.domain && !this.state.domain) {
+      await deployApiDomain(clients, config, this)
+    }
+
     config.url = `https://${config.apig.id}.execute-api.${config.region}.amazonaws.com/${config.apig.stage}`
 
     this.state = config
     await this.save()
 
-    return { url: config.url }
+    const outputs = {
+      url: config.url
+    }
+
+    if (config.domain) {
+      outputs.domain = `https://${this.state.domain}`
+    }
+
+    return outputs
   }
 
   async remove() {
