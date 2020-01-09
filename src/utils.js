@@ -32,6 +32,7 @@ const getClients = (credentials, region) => {
 }
 
 const getNakedDomain = (domain) => {
+  if (!domain) return null
   const domainParts = domain.split('.')
   const topLevelDomainPart = domainParts[domainParts.length - 1]
   const secondLevelDomainPart = domainParts[domainParts.length - 2]
