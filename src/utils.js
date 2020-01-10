@@ -32,7 +32,9 @@ const getClients = (credentials, region) => {
 }
 
 const getNakedDomain = (domain) => {
-  if (!domain) return null
+  if (!domain) {
+    return null
+  }
   const domainParts = domain.split('.')
   const topLevelDomainPart = domainParts[domainParts.length - 1]
   const secondLevelDomainPart = domainParts[domainParts.length - 2]
@@ -49,7 +51,7 @@ const getConfig = (inputs, state, org, stage, app, name) => {
     src: inputs.src,
     region: inputs.region || 'us-east-1',
     domain: inputs.domain,
-    nakedDomain: getNakedDomain(inputs.domain),
+    nakedDomain: inputs.domain ? getNakedDomain(inputs.domain) : null,
     role: state.role || {},
     lambda: state.lambda || {},
     apig: state.apig || {}

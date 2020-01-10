@@ -5,7 +5,7 @@ const getEndpoints = () => {
   if (process.env.SERVERLESS_PLATFORM_STAGE && process.env.SERVERLESS_PLATFORM_STAGE !== 'prod') {
     stage = 'dev'
   }
-  
+
   const stages = {
     dev: {
       http: `https://9ax5k3nx8c.execute-api.us-east-1.amazonaws.com/dev`,

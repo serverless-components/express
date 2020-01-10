@@ -285,7 +285,7 @@ if (process.env.NODE_ENV === 'test') {
 }
 
 function handler(event, context) {
-  // require('./sdk')
+  require('./sdk')
 
   const app = require('./app')
   const server = createServer(app)
