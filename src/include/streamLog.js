@@ -5,15 +5,15 @@ const getEndpoints = () => {
   if (process.env.SERVERLESS_PLATFORM_STAGE && process.env.SERVERLESS_PLATFORM_STAGE !== 'prod') {
     stage = 'dev'
   }
-
+  
   const stages = {
     dev: {
-      http: `https://y6w6rsjkib.execute-api.us-east-1.amazonaws.com/dev`,
-      socket: `wss://kiexxv95i8.execute-api.us-east-1.amazonaws.com/dev`
+      http: `https://9ax5k3nx8c.execute-api.us-east-1.amazonaws.com/dev`,
+      socket: `wss://9i23t9pcbh.execute-api.us-east-1.amazonaws.com/dev`
     },
     prod: {
-      http: `https://components-api.serverless.com`,
-      socket: `wss://qtrusbzkq4.execute-api.us-east-1.amazonaws.com/prod`
+      http: `https://mhchntjko2.execute-api.us-east-1.amazonaws.com/prod`,
+      socket: `wss://oqv29ax1n7.execute-api.us-east-1.amazonaws.com/prod`
     }
   }
 
@@ -30,7 +30,7 @@ const engine = new Proxy(
 
       const callFunction = async (inputs = {}) => {
         const options = {
-          url: `${endpoints.http}/engine/${functionName}`,
+          url: `${endpoints.http}/${functionName}`,
           parse: 'json',
           method: 'POST',
           headers: {
