@@ -75,11 +75,12 @@ const streamLog = async (data) => {
   const inputs = {
     accessKey: process.env.SERVERLESS_ACCESS_KEY,
     org: process.env.SERVERLESS_ORG,
-    instanceId: process.env.SERVERLESS_COMPONENT_INSTANCE_ID,
+    channelId: `instance/${process.env.SERVERLESS_COMPONENT_INSTANCE_ID}`,
+    event: 'log',
     data
   }
 
-  return engine.sendToInstanceConnections(inputs)
+  return engine.sendToChannel(inputs)
 }
 
 function asyncFunction() {
