@@ -42,6 +42,7 @@ component: aws-express
 org: eahefnawy
 app: myApp
 name: myExpress
+
 inputs:
   src: ./src
 ```

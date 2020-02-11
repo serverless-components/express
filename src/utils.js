@@ -1,21 +1,40 @@
 const path = require('path')
-const AdmZip = require('adm-zip')
-const globby = require('globby')
 const AWS = require('aws-sdk')
-const { contains, isNil, last, split } = require('ramda')
-const { readFile } = require('fs-extra')
+const { readFile, copySync } = require('fs-extra')
 
+/*
+ * Pauses execution for the provided miliseconds
+ *
+ * @param ${number} wait - number of miliseconds to wait
+ */
 const sleep = async (wait) => new Promise((resolve) => setTimeout(() => resolve(), wait))
 
+/*
+ * Logs a message
+ *
+ * @param ${string} msg - message to log
+ */
+const log = async (msg) => console.log(msg) // eslint-disable-line
+
+/*
+ * Generates a random id
+ */
 const generateId = () =>
   Math.random()
     .toString(36)
     .substring(6)
 
+/*
+ * Initializes an AWS SDK and returns the relavent service clients
+ *
+ * @param ${object} credentials - aws credentials object
+ * @param ${string} region - aws region
+ */
 const getClients = (credentials, region) => {
   const iam = new AWS.IAM({ credentials, region })
   const lambda = new AWS.Lambda({ credentials, region })
   const apig = new AWS.APIGateway({ credentials, region })
+  const apig2 = new AWS.ApiGatewayV2({ credentials, region })
   const route53 = new AWS.Route53({ credentials, region })
   const acm = new AWS.ACM({
     credentials,
@@ -26,11 +45,18 @@ const getClients = (credentials, region) => {
     iam,
     lambda,
     apig,
+    apig2,
     route53,
     acm
   }
 }
 
+/*
+ * Extracts the naked second level domain (ie. serverless.com) from
+ * the provided domain or subdomain (ie. api.serverless.com)
+ *
+ * @param ${string} domain - the domain input that the user provided
+ */
 const getNakedDomain = (domain) => {
   if (!domain) {
     return null
@@ -68,7 +94,7 @@ const getConfig = (inputs, state, org, stage, app, name) => {
     config.lambda = {
       name: `express-${id}`,
       description: `Serverless Express app Lambda for ${org} - ${stage} - ${app} - ${name}`,
-      handler: 'index.handler',
+      handler: '_express/index.handler',
       memory: 3008,
       timeout: 900,
       runtime: 'nodejs12.x',
@@ -79,7 +105,7 @@ const getConfig = (inputs, state, org, stage, app, name) => {
   if (!config.apig.name) {
     config.apig = {
       name: `express-${id}`,
-      stage: 'production',
+      stage: 'default',
       description: `Serverless Express app API for ${org} - ${stage} - ${app} - ${name}`,
       endpoints: [
         {
@@ -236,7 +262,7 @@ const createLambda = async (clients, config) => {
 const updateLambdaCode = async (clients, config) => {
   const functionCodeParams = {
     FunctionName: config.lambda.name,
-    Publish: true
+    Publish: false
   }
 
   functionCodeParams.ZipFile = await readFile(config.lambda.zipPath)
@@ -287,274 +313,65 @@ const updateLambdaConfig = async (clients, config) => {
   }
 }
 
-const pack = async (inputDirPath, outputFilePath, include = [], exclude = []) => {
-  const format = last(split('.', outputFilePath))
+const packageExpress = async (instance, config) => {
+  // unzip source zip file
+  const sourceDirectory = await instance.unzip(config.src)
 
-  if (!contains(format, ['zip', 'tar'])) {
-    throw new Error('Please provide a valid format. Either a "zip" or a "tar"')
-  }
+  // add shim to the source directory
+  copySync(path.join(__dirname, 'include'), path.join(sourceDirectory, '_express'))
 
-  const patterns = ['**']
+  // add sdk to the source directory
+  config.lambda.handler = await instance.addSDK(sourceDirectory, config.lambda.handler)
 
-  if (!isNil(exclude)) {
-    exclude.forEach((excludedItem) => patterns.push(`!${excludedItem}`))
-  }
-
-  const zip = new AdmZip()
-
-  const files = (await globby(patterns, { cwd: inputDirPath })).sort()
-
-  files.map((file) => {
-    if (file === path.basename(file)) {
-      zip.addLocalFile(path.join(inputDirPath, file))
-    } else {
-      zip.addLocalFile(path.join(inputDirPath, file), path.dirname(file))
-    }
-  })
-
-  if (!isNil(include)) {
-    include.forEach((file) => zip.addLocalFile(file))
-  }
-
-  zip.writeZip(outputFilePath)
-
-  return outputFilePath
+  // zip the source directory with the shim and the sdk
+  return instance.zip(sourceDirectory)
 }
 
-const packageExpress = async (src) => {
-  const inputDirPath = src
-  const outputFilePath = path.join(
-    '/tmp',
-    `${Math.random()
-      .toString(36)
-      .substring(6)}.zip`
-  )
-
-  const includeDirectory = path.join(__dirname, 'include')
-  const include = [
-    path.join(includeDirectory, 'binary-case.js'),
-    path.join(includeDirectory, 'index.js'),
-    path.join(includeDirectory, 'media-typer.js'),
-    path.join(includeDirectory, 'middleware.js'),
-    path.join(includeDirectory, 'mime-db.json'),
-    path.join(includeDirectory, 'mime-types.js'),
-    path.join(includeDirectory, 'type-is.js'),
-
-    // dev-mode
-    path.join(includeDirectory, 'centra.js'),
-    path.join(includeDirectory, 'CentraRequest.js'),
-    path.join(includeDirectory, 'CentraResponse.js'),
-    path.join(includeDirectory, 'find-port.js'),
-    path.join(includeDirectory, 'get-port.js'),
-    path.join(includeDirectory, 'json-buffer.js'),
-    path.join(includeDirectory, 'phin.js'),
-    path.join(includeDirectory, 'sdk.js'),
-    path.join(includeDirectory, 'streamLog.js'),
-    path.join(includeDirectory, 'sync-rpc.js'),
-    path.join(includeDirectory, 'worker.js')
-  ]
-
-  await pack(inputDirPath, outputFilePath, include)
-
-  return outputFilePath
-}
-
-const getApi = async (clients, config) => {
+const getApiV2 = async (clients, config) => {
   if (!config.apig.id) {
     return config.apig
   }
+
   try {
-    const api = await clients.apig.getRestApi({ restApiId: config.apig.id }).promise()
-
-    config.apig.id = api.id
-
+    await clients.apig2.getApi({ ApiId: config.apig.id }).promise()
     return config.apig
   } catch (e) {
-    if (e.code === 'NotFoundException') {
+    if (e.code === 'NotFound') {
+      // todo test this error code
+      delete config.apig.id
       return config.apig
     }
-    throw Error(e)
   }
 }
 
-const createApi = async (clients, config) => {
-  const api = await clients.apig
-    .createRestApi({
-      name: config.apig.name,
-      description: config.apig.description,
-      endpointConfiguration: {
-        types: ['EDGE']
-      }
-    })
-    .promise()
+const createApiV2 = async (clients, config) => {
+  const createApiParams = {
+    Name: config.apig.name,
+    ProtocolType: 'HTTP',
+    CredentialsArn: config.role.arn,
+    Description: config.apig.description,
+    Target: `arn:aws:apigateway:${config.region}:lambda:path/2015-03-31/functions/${config.lambda.arn}/invocations`,
+    CorsConfiguration: {
+      AllowHeaders: ['*'],
+      AllowOrigins: ['*']
+    }
+  }
 
-  config.apig.id = api.id
+  const res = await clients.apig2.createApi(createApiParams).promise()
+
+  config.apig.id = res.ApiId
 
   return config.apig
 }
 
-const getPathId = async (clients, config, endpoint) => {
-  // todo this called many times to stay up to date. Is it worth the latency?
-  const existingEndpoints = (
-    await clients.apig
-      .getResources({
-        restApiId: config.apig.id
-      })
-      .promise()
-  ).items
-
-  if (!endpoint) {
-    const rootResourceId = existingEndpoints.find(
-      (existingEndpoint) => existingEndpoint.path === '/'
-    ).id
-    return rootResourceId
-  }
-
-  const endpointFound = existingEndpoints.find(
-    (existingEndpoint) => existingEndpoint.path === endpoint.path
-  )
-
-  return endpointFound ? endpointFound.id : null
-}
-
-const createPath = async (clients, config, endpoint) => {
-  const pathId = await getPathId(clients, config, endpoint)
-
-  if (pathId) {
-    return pathId
-  }
-
-  const pathParts = endpoint.path.split('/')
-  const pathPart = pathParts.pop()
-  const parentEndpoint = { path: pathParts.join('/') }
-
-  let parentId
-  if (parentEndpoint.path === '') {
-    parentId = await getPathId(clients, config)
-  } else {
-    parentId = await createPath(clients, config, parentEndpoint)
-  }
-
-  const params = {
-    pathPart,
-    parentId,
-    restApiId: config.apig.id
-  }
-
-  const createdPath = await clients.apig.createResource(params).promise()
-
-  return createdPath.id
-}
-
-const createPaths = async (clients, config) => {
-  const createdEndpoints = []
-
-  for (const endpoint of config.apig.endpoints) {
-    // todo could this be done in parralel?
-    endpoint.id = await createPath(clients, config, endpoint)
-    createdEndpoints.push(endpoint)
-  }
-
-  config.apig.endpoints = createdEndpoints
-
-  return config.apig
-}
-
-const createMethod = async (clients, config, endpoint) => {
-  const params = {
-    authorizationType: 'NONE',
-    httpMethod: endpoint.method,
-    resourceId: endpoint.id,
-    restApiId: config.apig.id,
-    apiKeyRequired: false
+const removeApiV2 = async (clients, config) => {
+  if (!config.apig || !config.apig.id) {
+    return
   }
 
   try {
-    await clients.apig.putMethod(params).promise()
-  } catch (e) {
-    if (e.code !== 'ConflictException') {
-      throw Error(e)
-    }
-  }
-}
-
-const createMethods = async (clients, config) => {
-  const promises = []
-
-  for (const endpoint of config.apig.endpoints) {
-    promises.push(createMethod(clients, config, endpoint))
-  }
-
-  await Promise.all(promises)
-
-  return config.apig
-}
-
-const createIntegration = async (clients, config, endpoint) => {
-  const integrationParams = {
-    httpMethod: endpoint.method,
-    resourceId: endpoint.id,
-    restApiId: config.apig.id,
-    type: 'AWS_PROXY',
-    integrationHttpMethod: 'POST',
-    credentials: config.role.arn,
-    uri: `arn:aws:apigateway:${config.region}:lambda:path/2015-03-31/functions/${endpoint.function}/invocations`
-  }
-
-  try {
-    await clients.apig.putIntegration(integrationParams).promise()
-  } catch (e) {
-    if (e.code === 'ConflictException') {
-      // this usually happens when there are too many endpoints for
-      // the same function. Retrying after couple of seconds ensures
-      // any pending integration requests are resolved.
-      await sleep(2000)
-      return createIntegration(clients, config, endpoint)
-    }
-
-    throw Error(e)
-  }
-
-  return endpoint
-}
-
-const createIntegrations = async (clients, config) => {
-  config.apig.endpoints.map((endpoint) => {
-    endpoint.function = config.lambda.arn
-    return endpoint
-  })
-  const promises = []
-
-  for (const endpoint of config.apig.endpoints) {
-    promises.push(createIntegration(clients, config, endpoint))
-  }
-
-  await Promise.all(promises)
-
-  return config.apig
-}
-
-const getOrCreateApi = async (clients, config) => {
-  config.apig = await getApi(clients, config)
-
-  if (!config.apig.id) {
-    config.apig = await createApi(clients, config)
-  }
-
-  config.apig = await createPaths(clients, config)
-  config.apig = await createMethods(clients, config)
-
-  return config.apig
-}
-
-const createDeployment = async (clients, config) => {
-  await clients.apig
-    .createDeployment({ restApiId: config.apig.id, stageName: config.apig.stage })
-    .promise()
-
-  // todo add update stage functionality
-
-  return config.apig
+    await clients.apig2.deleteApi({ ApiId: config.apig.id })
+  } catch (e) {}
 }
 
 const removeRole = async (clients, config) => {
@@ -592,15 +409,6 @@ const removeLambda = async (clients, config) => {
       throw error
     }
   }
-}
-
-const removeApi = async (clients, config) => {
-  if (!config.apig || !config.apig.id) {
-    return
-  }
-  try {
-    await clients.apig.deleteRestApi({ restApiId: config.apig.id }).promise()
-  } catch (e) {}
 }
 
 const getDomainHostedZoneId = async (clients, config) => {
@@ -842,6 +650,7 @@ const removeDomain = async (clients, config) => {
 }
 
 module.exports = {
+  log,
   generateId,
   sleep,
   getClients,
@@ -849,16 +658,15 @@ module.exports = {
   getRole,
   createRole,
   getLambda,
+  getApiV2,
+  createApiV2,
+  removeApiV2,
   createLambda,
   updateLambdaCode,
   updateLambdaConfig,
   packageExpress,
-  getOrCreateApi,
-  createIntegrations,
-  createDeployment,
   removeRole,
   removeLambda,
-  removeApi,
   ensureCertificate,
   getDomainHostedZoneId,
   deployApiDomain,

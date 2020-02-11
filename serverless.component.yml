@@ -1,5 +1,5 @@
 name: express
-version: 0.0.5
+version: dev
 author: eahefnawy
 org: serverlessinc
 description: Deploys Serverless Express Apps
