@@ -1,100 +1,74 @@
 const { Component } = require('@serverless/core')
 const {
   log,
+  generateId,
   getClients,
-  getConfig,
   getRole,
-  createRole,
+  ensureRole,
   getLambda,
   createLambda,
   updateLambdaCode,
+  updateLambdaConfig,
   packageExpress,
-  getApiV2,
-  createApiV2,
-  removeApiV2,
+  getApi,
+  ensureApi,
+  removeApi,
   removeRole,
   removeLambda,
-  ensureCertificate,
-  getDomainHostedZoneId,
-  deployApiDomain,
+  createDomain,
   removeDomain
 } = require('./utils')
 
 class Express extends Component {
   async deploy(inputs) {
-    const config = getConfig(inputs, this.state, this.org, this.stage, this.app, this.name)
-    const clients = getClients(this.credentials.aws, config.region)
-
-    if (config.domain && !this.state.domain) {
-      log(`Setting up domain ${config.domain}`)
-
-      if (!config.domainHostedZoneId) {
-        this.state.domainHostedZoneId = await getDomainHostedZoneId(clients, config)
-        config.domainHostedZoneId = this.state.domainHostedZoneId
-      }
-
-      if (!config.certificateArn) {
-        this.state.certificateArn = await ensureCertificate(clients, config, this)
-        config.certificateArn = this.state.certificateArn
-      }
+    if (!inputs.src) {
+      throw new Error(`Missing "src" input.`)
     }
 
-    log(`Fetching role ${config.role.name}`)
-    log(`Fetching lambda ${config.lambda.name}`)
-    log(`Fetching APIG ${config.apig.name}`)
-    log(`Packaging code from ${config.src}`)
+    // set app name & region or use previously set name
+    this.state.name = this.state.name || `${this.name}-${generateId()}`
+    this.state.region = inputs.region || 'us-east-1'
 
-    const res = await Promise.all([
-      getRole(clients, config),
-      getLambda(clients, config),
-      getApiV2(clients, config),
-      packageExpress(this, config)
+    log(`Deploying Express App ${this.state.name}`)
+
+    const clients = getClients(this.credentials.aws, inputs.region)
+
+    // sync state with the provider in parallel
+    // while packaging to save on deployment time
+    await Promise.all([
+      getRole(this, inputs, clients),
+      getLambda(this, inputs, clients),
+      getApi(this, inputs, clients),
+      packageExpress(this, inputs)
     ])
 
-    config.role = res[0]
-    config.lambda = res[1]
-    config.apig = res[2]
-    config.lambda.zipPath = res[3]
+    // make sure the role (whether default or provided by the user)
+    // is valid and still exists on AWS
+    await ensureRole(this, inputs, clients)
 
-    if (!config.role.arn) {
-      log(`Creating role ${config.role.name}`)
-      config.role = await createRole(clients, config)
-      this.state.role = config.role
-      log(`Role created with ARN ${config.role.arn}`)
-    }
-
-    if (!config.lambda.arn) {
-      log(`Creating lambda ${config.lambda.name}`)
-      config.lambda = await createLambda(clients, config)
-      this.state.lambda = config.lambda
-      log(`Lambda created with ARN ${config.lambda.arn}`)
+    if (!this.state.lambdaArn) {
+      // create lambda if first deployment
+      log(`Creating lambda ${this.state.name}`)
+      await createLambda(this, inputs, clients)
     } else {
-      log(`Updating lambda code from ${config.src}`)
-      config.lambda = await updateLambdaCode(clients, config)
-      this.state.lambda = config.lambda
-      log(`Lambda code updated from ${config.src}`)
+      // otherwise update code and config
+      await updateLambdaCode(this, inputs, clients)
+      await updateLambdaConfig(this, inputs, clients)
     }
 
-    if (!config.apig.id) {
-      log(`Creating Api ${config.apig.name}`)
-      config.apig = await createApiV2(clients, config)
-      this.state.apig = config.apig
-      log(`Api ${config.apig.name} created with ID ${config.apig.id}`)
+    await ensureApi(this, inputs, clients)
+
+    if (inputs.domain && !this.state.domain) {
+      await createDomain(this, inputs, clients)
     }
 
-    if (config.domain && !this.state.domain) {
-      await deployApiDomain(clients, config, this)
-    }
-
-    config.url = `https://${config.apig.id}.execute-api.${config.region}.amazonaws.com`
-
-    this.state = config
+    this.state.url = `https://${this.state.apiId}.execute-api.${this.state.region}.amazonaws.com`
 
     const outputs = {
-      url: config.url
+      url: this.state.url
     }
 
-    if (config.domain) {
+    if (inputs.domain) {
       outputs.domain = `https://${this.state.domain}`
     }
 
@@ -106,23 +80,17 @@ class Express extends Component {
       log(`State is empty. Nothing to remove`)
       return {}
     }
-    const config = this.state
 
     const clients = getClients(this.credentials.aws, this.state.region)
 
-    log(`Removing role`)
-    log(`Removing Lambda`)
-    log(`Removing APIG`)
-
     const promises = [
-      removeRole(clients, config),
-      removeLambda(clients, config),
-      removeApiV2(clients, config)
+      removeRole(this, clients),
+      removeLambda(this, clients),
+      removeApi(this, clients)
     ]
 
-    if (config.domain) {
-      log(`Removing domain`)
-      promises.push(removeDomain(clients, config))
+    if (this.state.domain) {
+      promises.push(removeDomain(this, clients))
     }
 
     await Promise.all(promises)
