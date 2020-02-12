@@ -320,8 +320,10 @@ const packageExpress = async (instance, config) => {
   // add shim to the source directory
   copySync(path.join(__dirname, 'include'), path.join(sourceDirectory, '_express'))
 
-  // add sdk to the source directory
-  config.lambda.handler = await instance.addSDK(sourceDirectory, config.lambda.handler)
+  console.log(config.lambda.handler)
+
+  // add sdk to the source directory, add original handler
+  config.lambda.handler = await instance.addSDK(sourceDirectory, '_express/index.handler')
 
   // zip the source directory with the shim and the sdk
   return instance.zip(sourceDirectory)
