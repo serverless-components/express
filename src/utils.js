@@ -428,7 +428,7 @@ const ensureApi = async (instance, inputs, clients) => {
  * @param ${object} config - the component config
  */
 const removeApi = async (instance, clients) => {
-  if (!instance.state.apiid) {
+  if (!instance.state.apiId) {
     return
   }
 
@@ -482,11 +482,13 @@ const describeCertificateByArn = async (clients, certificateArn) => {
 }
 
 const getCertificateValidationRecord = (certificate, domain) => {
+
   const domainValidationOption = certificate.DomainValidationOptions.filter(
     (option) => option.DomainName === domain
   )
 
-  return domainValidationOption.ResourceRecord
+  if (Array.isArray(domainValidationOption)) return domainValidationOption[0].ResourceRecord
+  else return domainValidationOption.ResourceRecord
 }
 
 const ensureCertificate = async (instance, inputs, clients) => {
