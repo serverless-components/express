@@ -307,12 +307,17 @@ const updateLambdaCode = async (instance, inputs, clients) => {
 const updateLambdaConfig = async (instance, inputs, clients) => {
   log(`Updating lambda config`)
 
+  // Validate
+  if (inputs.timeout && inputs.timeout > 30) {
+    throw new Error('"timeout" can not be greater than 30 seconds.')
+  }
+
   const functionConfigParams = {
     FunctionName: instance.state.name,
     Description: inputs.description || getDefaultDescription(instance),
     MemorySize: inputs.memory || 3008,
     Role: instance.state.roleArn,
-    Timeout: inputs.timeout || 900,
+    Timeout: inputs.timeout || 29,
     Environment: {
       Variables: inputs.env || {}
     }
