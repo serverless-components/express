@@ -242,7 +242,7 @@ const createLambda = async (instance, inputs, clients) => {
     Publish: false,
     Role: instance.state.roleArn,
     Runtime: 'nodejs12.x',
-    Timeout: inputs.timeout || 900,
+    Timeout: inputs.timeout || 29,
     Environment: {
       Variables: inputs.env || {}
     }
