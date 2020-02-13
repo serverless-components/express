@@ -114,6 +114,7 @@ const getRole = async (instance, inputs, clients) => {
     return res.Role.Arn
   } catch (e) {
     if (e.message.includes('cannot be found')) {
+      instance.state.roleArn = null
       return null
     }
     throw e
@@ -176,9 +177,6 @@ const removeRole = async (instance, clients) => {
   if (!instance.state.roleArn) {
     return
   }
-  const roleName = instance.state.roleArn
-    .split(':')
-    [instance.state.roleArn.split(':').length - 1].replace('role/', '')
 
   try {
     await clients.iam
@@ -219,6 +217,7 @@ const getLambda = async (instance, inputs, clients) => {
     return res.FunctionArn
   } catch (e) {
     if (e.code === 'ResourceNotFoundException') {
+      instance.state.lambdaArn = null
       return null
     }
     throw e
@@ -318,6 +317,8 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
     MemorySize: inputs.memory || 3008,
     Role: instance.state.roleArn,
     Timeout: inputs.timeout || 29,
+    Handler: instance.state.handler,
+    Runtime: 'nodejs12.x',
     Environment: {
       Variables: inputs.env || {}
     }
@@ -482,13 +483,14 @@ const describeCertificateByArn = async (clients, certificateArn) => {
 }
 
 const getCertificateValidationRecord = (certificate, domain) => {
-
   const domainValidationOption = certificate.DomainValidationOptions.filter(
     (option) => option.DomainName === domain
   )
 
-  if (Array.isArray(domainValidationOption)) return domainValidationOption[0].ResourceRecord
-  else return domainValidationOption.ResourceRecord
+  if (Array.isArray(domainValidationOption)) {
+    return domainValidationOption[0].ResourceRecord
+  }
+  return domainValidationOption.ResourceRecord
 }
 
 const ensureCertificate = async (instance, inputs, clients) => {
@@ -600,14 +602,21 @@ const configureDnsForApigDomain = async (instance, inputs, clients) => {
 const mapDomainToApi = async (instance, inputs, clients) => {
   log(`Mapping domain ${inputs.domain} to API ID ${instance.state.apiId}`)
   try {
-    const params = {
+    const createApiMappingParams = {
       DomainName: inputs.domain,
       ApiId: instance.state.apiId,
       // basePath: '(none)',
       Stage: '$default'
     }
+    const getDomainNameParams = {
+      DomainName: inputs.domain
+    }
+    const res = await clients.apig.getDomainName(getDomainNameParams).promise()
+
+    instance.state.distributionDomainName = res.DomainNameConfigurations.ApiGatewayDomainName
+    instance.state.distributionHostedZoneId = res.DomainNameConfigurations.HostedZoneId
     // todo what if it already exists but for a different apiId
-    return clients.apig.createApiMapping(params).promise()
+    return clients.apig.createApiMapping(createApiMappingParams).promise()
   } catch (e) {
     if (e.code === 'TooManyRequestsException') {
       await sleep(2000)
@@ -633,8 +642,8 @@ const createDomain = async (instance, inputs, clients) => {
     if (e.message === 'Invalid domain name identifier specified') {
       const res = await createDomainInApig(instance, inputs, clients)
 
-      instance.state.distributionHostedZoneId = res.distributionHostedZoneId
-      instance.state.distributionDomainName = res.distributionDomainName
+      instance.state.distributionHostedZoneId = res.DomainNameConfigurations[0].ApiGatewayDomainName
+      instance.state.distributionDomainName = res.DomainNameConfigurations[0].HostedZoneId
 
       await configureDnsForApigDomain(instance, inputs, clients)
 
@@ -642,7 +651,7 @@ const createDomain = async (instance, inputs, clients) => {
       return createDomain(instance, inputs, clients)
     }
 
-    if (e.message === 'Base path already exists for this domain name') {
+    if (e.message.includes('ApiMapping key already exists')) {
       log(`Domain ${inputs.domain} is already mapped to API ID ${instance.state.apiId}.`)
       return
     }
@@ -655,7 +664,10 @@ const createDomain = async (instance, inputs, clients) => {
  */
 
 const removeDomainFromApig = async (instance, clients) => {
-  log(`Removing domain ${instance.state.domainn} from API Gateway`)
+  if (!instance.state.domain) {
+    return
+  }
+  log(`Removing domain ${instance.state.domain} from API Gateway`)
   const params = {
     DomainName: instance.state.domain
   }
@@ -668,6 +680,9 @@ const removeDomainFromApig = async (instance, clients) => {
  */
 
 const removeDnsRecordsForApigDomain = async (instance, clients) => {
+  if (!instance.state.domain) {
+    return
+  }
   log(`Removing DNS records for domain ${instance.state.domain}`)
   const dnsRecord = {
     HostedZoneId: instance.state.domainHostedZoneId,
@@ -692,7 +707,25 @@ const removeDnsRecordsForApigDomain = async (instance, clients) => {
   return clients.route53.changeResourceRecordSets(dnsRecord).promise()
 }
 
+const getDomain = async (instance, clients) => {
+  if (!instance.state.domain) {
+    return
+  }
+  try {
+    const res = await clients.apig.getDomainName({ DomainName: 'test.com' }).promise()
+
+    instance.state.distributionDomainName = res.DomainNameConfigurations.ApiGatewayDomainName
+    instance.state.distributionHostedZoneId = res.DomainNameConfigurations.HostedZoneId
+  } catch (e) {
+    if (e.message === 'Invalid domain name identifier specified') {
+      instance.state.domain = null
+    }
+  }
+}
+
 const removeDomain = async (instance, clients) => {
+  await getDomain(instance, clients)
+
   await Promise.all([
     removeDomainFromApig(instance, clients),
     removeDnsRecordsForApigDomain(instance, clients)
@@ -719,5 +752,6 @@ module.exports = {
   ensureCertificate,
   getDomainHostedZoneId,
   createDomain,
+  getDomain,
   removeDomain
 }

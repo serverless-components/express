@@ -1,8 +1,8 @@
 const awsServerlessExpress = require('aws-serverless-express')
+const app = require('../app')
+const server = awsServerlessExpress.createServer(app)
 
 exports.handler = async (event, context) => {
-  const app = require('../app')
-  const server = awsServerlessExpress.createServer(app)
-  let res = await awsServerlessExpress.proxy(server, event, context, 'PROMISE')
+  const res = await awsServerlessExpress.proxy(server, event, context, 'PROMISE')
   return res.promise
 }

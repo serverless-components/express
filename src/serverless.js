@@ -58,10 +58,6 @@ class Express extends Component {
 
     await ensureApi(this, inputs, clients)
 
-    if (inputs.domain && !this.state.domain) {
-      await createDomain(this, inputs, clients)
-    }
-
     this.state.url = `https://${this.state.apiId}.execute-api.${this.state.region}.amazonaws.com`
 
     const outputs = {
@@ -69,6 +65,7 @@ class Express extends Component {
     }
 
     if (inputs.domain) {
+      await createDomain(this, inputs, clients)
       outputs.domain = `https://${this.state.domain}`
     }
 
@@ -86,12 +83,9 @@ class Express extends Component {
     const promises = [
       removeRole(this, clients),
       removeLambda(this, clients),
-      removeApi(this, clients)
+      removeApi(this, clients),
+      removeDomain(this, clients)
     ]
-
-    if (this.state.domain) {
-      promises.push(removeDomain(this, clients))
-    }
 
     await Promise.all(promises)
 
