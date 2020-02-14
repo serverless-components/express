@@ -1,10 +1,10 @@
 name: express
-version: dev
+version: 0.0.1
 author: eahefnawy
 org: serverlessinc
-description: Deploys Serverless Express Apps
+description: Deploys a serverless Express.js application onto AWS Lambda and AWS HTTP API. 
 keywords: aws, serverless, express
-repo: https://github.com/owner/project
+repo: https://github.com/serverless-components/express
 readme: ''
 license: MIT
 main: ./src

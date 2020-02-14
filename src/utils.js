@@ -515,9 +515,7 @@ const createOrUpdateRole = async (instance, inputs, clients) => {
 
   // Verify existing role, either provided or the previously created default role...
   if (inputs.roleArn) {
-    console.log(`Verifying the provided IAM Role with the ARN: ${inputs.roleArn} in the inputs exists...`)
-    const userRoleArn = await getRole(clients, inputs.roleArn) // Don't save user provided role to state, always reference it as an input, in case it changes
-    if (!userRoleArn) throw new Error(`The provided IAM Role with the ARN: ${inputs.roleArn} could not be found.`)
+    console.log(`User has provided their own IAM Role with the ARN: ${inputs.roleArn}.  Skipping verification and automatic role creation, and using that...`)
   }
   
   if (!inputs.roleArn && instance.state.defaultLambdaRoleArn) {
