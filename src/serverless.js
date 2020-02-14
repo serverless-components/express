@@ -1,93 +1,75 @@
 const { Component } = require('@serverless/core')
 const {
-  log,
   generateId,
   getClients,
-  getRole,
-  ensureRole,
-  getLambda,
-  createLambda,
-  updateLambdaCode,
-  updateLambdaConfig,
   packageExpress,
-  getApi,
-  ensureApi,
+  createOrUpdateRole,
+  createOrUpdateLambda,
+  createOrUpdateApi,
+  createOrUpdateDomain,
   removeApi,
   removeRole,
   removeLambda,
-  createDomain,
   removeDomain
 } = require('./utils')
 
 class Express extends Component {
+
+  /**
+   * Deploy method
+   * @param {object} inputs 
+   */
   async deploy(inputs) {
+
+    console.log(`Deploying Express App...`)
+
+    // Validate
     if (!inputs.src) {
       throw new Error(`Missing "src" input.`)
     }
+    // Validate
+    if (inputs.timeout && inputs.timeout > 30) {
+      throw new Error('"timeout" can not be greater than 30 seconds.')
+    }
 
-    // set app name & region or use previously set name
+    // Set app name & region or use previously set name
     this.state.name = this.state.name || `${this.name}-${generateId()}`
     this.state.region = inputs.region || 'us-east-1'
 
-    log(`Deploying Express App ${this.state.name}`)
-
     const clients = getClients(this.credentials.aws, inputs.region)
 
-    // sync state with the provider in parallel
-    // while packaging to save on deployment time
-    await Promise.all([
-      getRole(this, inputs, clients),
-      getLambda(this, inputs, clients),
-      getApi(this, inputs, clients),
-      packageExpress(this, inputs)
-    ])
+    await packageExpress(this, inputs)
 
-    // make sure the role (whether default or provided by the user)
-    // is valid and still exists on AWS
-    await ensureRole(this, inputs, clients)
+    await createOrUpdateRole(this, inputs, clients)
 
-    if (!this.state.lambdaArn) {
-      // create lambda if first deployment
-      log(`Creating lambda ${this.state.name}`)
-      await createLambda(this, inputs, clients)
-    } else {
-      // otherwise update code and config
-      await updateLambdaCode(this, inputs, clients)
-      await updateLambdaConfig(this, inputs, clients)
-    }
+    await createOrUpdateLambda(this, inputs, clients)
 
-    await ensureApi(this, inputs, clients)
-
-    this.state.url = `https://${this.state.apiId}.execute-api.${this.state.region}.amazonaws.com`
-
-    const outputs = {
-      url: this.state.url
-    }
+    await createOrUpdateApi(this, inputs, clients)
 
     if (inputs.domain) {
-      await createDomain(this, inputs, clients)
-      outputs.domain = `https://${this.state.domain}`
+      await createOrUpdateDomain(this, inputs, clients)
+    } else {
+      if (this.state.domain) delete this.state.domain
     }
+
+    const outputs = {}
+    outputs.url = this.state.url
+    if (this.state.domain) outputs.domain = `https://${this.state.domain}`
 
     return outputs
   }
 
+  /**
+   * Remove method
+   */
   async remove() {
-    if (Object.keys(this.state).length === 0) {
-      log(`State is empty. Nothing to remove`)
-      return {}
-    }
 
     const clients = getClients(this.credentials.aws, this.state.region)
 
-    const promises = [
-      removeRole(this, clients),
-      removeLambda(this, clients),
-      removeApi(this, clients),
-      removeDomain(this, clients)
-    ]
-
-    await Promise.all(promises)
+    await removeRole(this, clients)
+    await removeLambda(this, clients)
+    await removeDomain(this, clients)
+    await removeApi(this, clients)
 
     this.state = {}
     return {}
