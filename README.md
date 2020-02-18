@@ -5,52 +5,150 @@ Easily provision Express apps on AWS.
 &nbsp;
 
 1. [Install](#1-install)
-2. [Create](#2-create)
-3. [Configure](#3-configure)
-4. [Deploy](#4-deploy)
+2. [Login](#2-login)
+3. [Create](#3-create)
+4. [Configure](#4-configure)
+5. [Deploy](#5-deploy)
+6. [Dev](#6-dev)
+7. [Info](#7-info)
+8. [Remove](#8-remove)
 
 &nbsp;
 
 ### 1. Install
 
 ```shell
-$ npm install -g @serverless/cli
+$ npm install -g serverless@components
 ```
 
-### 2. Create
 
-Just create a `serverless.yml` file
-
-```shell
-$ touch serverless.yml
-$ touch .env      # your development AWS api keys
-$ touch .env.prod # your production AWS api keys
-```
-
-the `.env` files are not required if you have the aws keys set globally and you want to use a single stage, but they should look like this.
+### 2. Login
 
 ```
+$ serverless login
+```
+
+### 3. Create
+
+```
+$ mkdir my-app
+$ cd my-app
+```
+
+the directory should look something like this:
+
+```
+|- src
+  |- app.js        # express app
+  |- package.json  # holds express as a dependency
+|- serverless.yml  
+|- .env            # your AWS api keys
+
+```
+
+```
+# .env
 AWS_ACCESS_KEY_ID=XXX
 AWS_SECRET_ACCESS_KEY=XXX
 ```
 
-### 3. Configure
+```js
+// app.js
+const express = require('express')
+const app = express()
 
-```yml
-# serverless.yml
-component: aws-express
-org: eahefnawy
-app: myApp
-name: myExpress
+app.get('/*', function(req, res) {
+  console.log('hello world')
 
-inputs:
-  src: ./src
+  res.send('hello world')
+})
+
+module.exports = app
 ```
 
-### 4. Deploy
+### 4. Configure
 
-```shell
-express (master)$ components deploy --debug
+```yml
+org: serverlessinc
+app: myApp
+component: express
+name: myExpressApp
+stage: dev
+
+inputs:
+  src: ./src                    # path to the source folder
+  memory: 512                   # (optional) memory size
+  timeout: 10                   # (optional) timeout
+  description: My Express App   # (optional) description
+  roleArn: arn:aws:abc          # (optional) custom role arn
+  env:                          # (optional) env vars
+    DEBUG: 'express:router:*'
+  domain: api.serverless.com    # (optional) domain name
+
+```
+
+### 5. Deploy
+
+```
+$ serverless deploy
+
+serverless ⚡ framework
+Action: "deploy" - Stage: "dev" - App: "myApp" - Instance: "myExpressApp"
+
+url: https://usn0cmhx75.execute-api.us-east-1.amazonaws.com
+domain: api.serverless.com
+
+More instance info at https://dashboard.serverless.com/tenants/serverlessinc/applications/myApp/component/myExpressApp/stage/dev/overview
+
+6s › myExpressApp › Success
+```
+
+### 6. Dev
+You can enable dev mode to watch for changes in your source directory and enable live logs from your express app:
+
+```
+$ serverless dev
+
+serverless ⚡ framework
+Dev Mode - Watching your Component for changes and enabling streaming logs, if supported...
+
+9:37:30 PM - myExpressApp - deployment
+url: https://usn0cmhx75.execute-api.us-east-1.amazonaws.com
+
+9:39:07 PM - myExpressApp - transaction - GET - /
+9:39:07 PM - myExpressApp - log
+hello world
+
+myExpressApp › Watching...
+```
+
+### 7. Info
+
+```
+$ serverless info
+
+serverless ⚡ framework
+
+Status:       active
+Last Action:  deploy (3 minutes ago)
+Deployments:  4
+More Info:    https://dashboard.serverless.com/tenants/serverlessinc/applications/myApp/component/myExpressApp/stage/dev/overview
+
+url: https://usn0cmhx75.execute-api.us-east-1.amazonaws.com
+domain: api.serverless.com
+
+myExpressApp › Success
+```
+
+### 8. Remove
+
+```
+$ serverless remove
+
+serverless ⚡ framework
+Action: "remove" - Stage: "dev" - App: "myApp" - Instance: "myExpressApp"
+
+5s › myExpressApp › Success
 ```
 
 &nbsp;
