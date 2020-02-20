@@ -11,16 +11,14 @@
 
 <br/>
 
-# Documentation
-
-1. [Install](#1-install)
-2. [Login](#2-login)
-3. [Create](#3-create)
-4. [Configure](#4-configure)
-5. [Deploy](#5-deploy)
-6. [Develop](#6-develop)
-7. [Manage](#7-manage)
-8. [Remove](#8-remove)
+1. [**Install**](#1-install)
+2. [**Login**](#2-login)
+3. [**Create**](#3-create)
+4. [**Configure**](#4-configure)
+5. [**Deploy**](#5-deploy)
+6. [**Develop**](#6-develop)
+7. [**Manage**](#7-manage)
+8. [**Remove**](#8-remove)
 
 &nbsp;
 
