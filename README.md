@@ -30,12 +30,16 @@
 
 ### 1. Install
 
-```shell
+Install Serverless Components by specifying the `components` tag when installing the Serverless Framework.
+
+```
 $ npm install -g serverless@components
 ```
 
 
 ### 2. Login
+
+One of Serverless Component's best features is that it's completely cloud based. All deployment logic runs in the cloud. Therefore, you'll need to login to make the most off your experience with Serverless Components.
 
 ```
 $ serverless login
