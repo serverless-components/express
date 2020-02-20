@@ -1,16 +1,17 @@
-# Express
 
-Easily provision Express apps on AWS.
+Rapidly deploy express applications on serverless infrastructure with zero configuration, powered by Serverless Components.
 
 &nbsp;
+
+# Documentation
 
 1. [Install](#1-install)
 2. [Login](#2-login)
 3. [Create](#3-create)
 4. [Configure](#4-configure)
 5. [Deploy](#5-deploy)
-6. [Dev](#6-dev)
-7. [Info](#7-info)
+6. [Develop](#6-dev)
+7. [Manage](#7-info)
 8. [Remove](#8-remove)
 
 &nbsp;
