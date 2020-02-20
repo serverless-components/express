@@ -11,6 +11,8 @@
 
 <br/>
 
+<img src="/assets/express.gif" height="220" align="right">
+
 1. [**Install**](#1-install)
 2. [**Login**](#2-login)
 3. [**Create**](#3-create)
