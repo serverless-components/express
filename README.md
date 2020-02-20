@@ -39,7 +39,7 @@ $ npm install -g serverless@components
 
 ### 2. Login
 
-One of Serverless Component's best features is that it's completely cloud based. All deployment logic runs in the cloud. Therefore, you'll need to login to make the most off your experience with Serverless Components.
+Unlike most solutions, all component deployments run in the cloud. Therefore, you'll need to login to deploy, share and monitor your components.
 
 ```
 $ serverless login
@@ -47,21 +47,14 @@ $ serverless login
 
 ### 3. Create
 
-```
-$ mkdir my-app
-$ cd my-app
-```
-
-the directory should look something like this:
+You can easily create a new express instance just by using the following command and template url.
 
 ```
-|- src
-  |- app.js        # express app
-  |- package.json  # holds express as a dependency
-|- serverless.yml  
-|- .env            # your AWS api keys
-
+$ serverless create --template-url https://github.com/serverless/components/tree/cloud/templates/express
+$ cd express
 ```
+
+Then, create a new `.env` file in the root of the `express` directory right next to `serverless.yml`, and add your AWS access keys:
 
 ```
 # .env
@@ -69,28 +62,32 @@ AWS_ACCESS_KEY_ID=XXX
 AWS_SECRET_ACCESS_KEY=XXX
 ```
 
-```js
-// app.js
-const express = require('express')
-const app = express()
+You should now have a directory that looks something like this:
 
-app.get('/*', function(req, res) {
-  console.log('hello world')
+```
+|- src
+  |- app.js
+  |- package.json
+|- serverless.yml  
+|- .env
+```
+Just like any express app, don't forget to install the express dependencies:
 
-  res.send('hello world')
-})
-
-module.exports = app
+```
+$ cd src
+$ npm install
+$ cd ..
 ```
 
 ### 4. Configure
 
 ```yml
-org: serverlessinc
-app: myApp
-component: express
-name: myExpressApp
-stage: dev
+org: serverlessinc              # serverless dashboard org
+app: myApp                      # serverless dashboard app. Will be created if it does not exist
+stage: dev                      # serverless dashboard stage. Default is dev
+component: express              # name of the component. In that case, it's express
+name: myExpressApp              # name of your express instance
+
 
 inputs:
   src: ./src                    # path to the source folder
