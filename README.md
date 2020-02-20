@@ -1,4 +1,8 @@
 
+[![Serverless Components](https://s3.amazonaws.com/assets.github.serverless/readme-serverless-components-3.gif)](http://serverless.com)
+
+<br/>
+
 **Serverless Express Component** ⎯⎯⎯ Rapidly deploy express applications on serverless infrastructure with zero configuration, powered by [Serverless Components](https://github.com/serverless/components/tree/cloud).
 
 <br/>
