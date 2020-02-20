@@ -47,6 +47,7 @@ module.exports = {
     'no-const-assign': 'error',
     'no-else-return': 'error',
     'no-empty': 'off',
+    'no-console': 'off',
     'no-shadow': 'error',
     'no-undef': 'error',
     'no-unused-vars': 'error',

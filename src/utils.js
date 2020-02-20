@@ -1,5 +1,10 @@
 const path = require('path')
 const AWS = require('aws-sdk')
+const https = require('https')
+const agent = new https.Agent({
+  keepAlive: true
+})
+
 const { readFile, copySync } = require('fs-extra')
 
 /*
@@ -19,7 +24,7 @@ const generateId = () =>
 
 /**
  * Generate a default description for resources
- * @param {*} instance 
+ * @param {*} instance
  */
 const getDefaultDescription = (instance) => {
   return `A resource of the Serverless Express Component for ${instance.org} - ${instance.stage} - ${instance.app} - ${instance.name}`
@@ -39,6 +44,12 @@ const getDefaultLambdaRolePolicyArn = () => {
  * @param ${string} region - aws region
  */
 const getClients = (credentials, region = 'us-east-1') => {
+  AWS.config.update({
+    httpOptions: {
+      agent
+    }
+  })
+
   const iam = new AWS.IAM({ credentials, region })
   const lambda = new AWS.Lambda({ credentials, region })
   const apig = new AWS.ApiGatewayV2({ credentials, region })
@@ -80,7 +91,6 @@ const getNakedDomain = (domain) => {
  * @param ${object} config - the component config
  */
 const packageExpress = async (instance, inputs) => {
-
   console.log(`Packaging Express.js application...`)
 
   // unzip source zip file
@@ -115,7 +125,9 @@ const getRole = async (clients, roleArn) => {
     const res = await clients.iam.getRole({ RoleName: roleArn }).promise()
     return res.Role.Arn
   } catch (e) {
-    if (e.message.includes('cannot be found')) return null
+    if (e.message.includes('cannot be found')) {
+      return null
+    }
     throw e
   }
 }
@@ -132,7 +144,9 @@ const getLambda = async (clients, lambdaName) => {
       .promise()
     return res.FunctionArn
   } catch (e) {
-    if (e.code === 'ResourceNotFoundException') return null
+    if (e.code === 'ResourceNotFoundException') {
+      return null
+    }
     throw e
   }
 }
@@ -172,8 +186,12 @@ const createLambda = async (instance, inputs, clients) => {
     console.log(`Lambda created with ARN ${res.FunctionArn}`)
     lambdaArn = res.FunctionArn
   } catch (e) {
-    if (e.message.includes(`The role defined for the function cannot be assumed by Lambda`) ||
-        e.message.includes(`Lambda was unable to configure access to your environment variables because the KMS key is invalid`)) {
+    if (
+      e.message.includes(`The role defined for the function cannot be assumed by Lambda`) ||
+      e.message.includes(
+        `Lambda was unable to configure access to your environment variables because the KMS key is invalid`
+      )
+    ) {
       // we need to wait around 2 seconds after the role is created before it can be assumed
       await sleep(2000)
       return createLambda(instance, inputs, clients)
@@ -233,7 +251,6 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
  * Get the Hosted Zone ID of the custom domain in Route 53
  */
 const getDomainHostedZoneId = async (instance, inputs, clients) => {
-  
   const nakedDomain = getNakedDomain(inputs.domain)
 
   console.log(`Getting Route53 Hosted Zone ID for domain: ${nakedDomain}`)
@@ -259,10 +276,10 @@ const getDomainHostedZoneId = async (instance, inputs, clients) => {
 }
 
 /**
- * Get an AWS ACM Certificate by a domain name 
- * @param {*} instance 
- * @param {*} inputs 
- * @param {*} clients 
+ * Get an AWS ACM Certificate by a domain name
+ * @param {*} instance
+ * @param {*} inputs
+ * @param {*} clients
  */
 const getCertificateArnByDomain = async (instance, inputs, clients) => {
   const nakedDomain = getNakedDomain(inputs.domain)
@@ -283,8 +300,8 @@ const describeCertificateByArn = async (clients, certificateArn) => {
 
 /**
  * Gets the Resource Record needed on the Certificate Record to validate it via the DNS Validation Method
- * @param {*} certificate 
- * @param {*} domain 
+ * @param {*} certificate
+ * @param {*} domain
  */
 const getCertificateValidationRecord = (certificate, domain) => {
   const domainValidationOption = certificate.DomainValidationOptions.filter(
@@ -322,7 +339,9 @@ const findOrCreateCertificate = async (instance, inputs, clients) => {
   const certificate = await describeCertificateByArn(clients, certificateArn)
 
   if (certificate.Status !== 'ISSUED') {
-    console.log(`AWS ACM Certificate is not yet valid for the domain: ${nakedDomain}.  Validating it via the DNS method...`)
+    console.log(
+      `AWS ACM Certificate is not yet valid for the domain: ${nakedDomain}.  Validating it via the DNS method...`
+    )
 
     const certificateValidationRecord = getCertificateValidationRecord(certificate, nakedDomain)
 
@@ -354,9 +373,9 @@ const findOrCreateCertificate = async (instance, inputs, clients) => {
 
 /**
  * Create a custom domain record in API Gateway
- * @param {*} instance 
- * @param {*} inputs 
- * @param {*} clients 
+ * @param {*} instance
+ * @param {*} inputs
+ * @param {*} clients
  */
 const createDomainInApig = async (instance, inputs, clients) => {
   console.log(`Domain ${inputs.domain} not found in API Gateway. Creating...`)
@@ -389,13 +408,14 @@ const createDomainInApig = async (instance, inputs, clients) => {
 
 /**
  * Ensure a Route 53 Hosted Zone AliasTarget Record Set for the HTTP Custom Domain
- * @param {*} instance 
- * @param {*} inputs 
- * @param {*} clients 
+ * @param {*} instance
+ * @param {*} inputs
+ * @param {*} clients
  */
 const ensureRecordSetForApiGCustomDomain = async (instance, inputs, clients) => {
-
-  console.log(`Ensuring the existence of a Route 53 Hosted Zone AliasTarget Record Set for HTTP API with a Hosted Zone ID: ${instance.state.distributionHostedZoneId} and DNS Name: ${instance.state.distributionDomainName}.`)
+  console.log(
+    `Ensuring the existence of a Route 53 Hosted Zone AliasTarget Record Set for HTTP API with a Hosted Zone ID: ${instance.state.distributionHostedZoneId} and DNS Name: ${instance.state.distributionDomainName}.`
+  )
 
   const changeParams = {
     HostedZoneId: instance.state.domainHostedZoneId,
@@ -419,14 +439,15 @@ const ensureRecordSetForApiGCustomDomain = async (instance, inputs, clients) => 
 
   try {
     await clients.route53.changeResourceRecordSets(changeParams).promise()
-  } catch(error) { console.error(error) }
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 /**
  * Find or create a custom domain on API Gateway
  */
 const findOrCreateCustomDomain = async (instance, inputs, clients) => {
-
   const result = {}
   // Find or create custom domain on API Gateway
   try {
@@ -436,13 +457,15 @@ const findOrCreateCustomDomain = async (instance, inputs, clients) => {
     result.distributionHostedZoneId = domain.DomainNameConfigurations[0].HostedZoneId
     result.distributionDomainName = domain.DomainNameConfigurations[0].ApiGatewayDomainName
     return result
-  } catch(error) {
+  } catch (error) {
     if (error.code === 'NotFoundException') {
       console.log(`Custom Domain not found oni API Gateway: ${inputs.domain}.  Creating it...`)
       const res = await createDomainInApig(instance, inputs, clients)
       result.distributionHostedZoneId = res.DomainNameConfigurations[0].HostedZoneId
       result.distributionDomainName = res.DomainNameConfigurations[0].ApiGatewayDomainName
-      console.log(`Domain ${instance.state.domain} successfully created.  If this is your first deploy, please note that you will have to wait typical DNS propagation times for your domain name to be accessible.  This is often only 10-20 minutes, but on occassion can take ~4 hours.`)
+      console.log(
+        `Domain ${instance.state.domain} successfully created.  If this is your first deploy, please note that you will have to wait typical DNS propagation times for your domain name to be accessible.  This is often only 10-20 minutes, but on occassion can take ~4 hours.`
+      )
       return result
     }
     throw error
@@ -453,18 +476,21 @@ const findOrCreateCustomDomain = async (instance, inputs, clients) => {
  * Ensure API Gateway API is mapped to the custom API Gateway Domain
  */
 const findOrCreateApiMapping = async (instance, inputs, clients) => {
-
   const result = {}
 
-  console.log(`Verifying API Gateway Custom Domain: ${inputs.domain} is mapped to API ID: ${instance.state.apiId}`)
-  
+  console.log(
+    `Verifying API Gateway Custom Domain: ${inputs.domain} is mapped to API ID: ${instance.state.apiId}`
+  )
+
   let apiMapping
   const paramsGet = {
-    DomainName: instance.state.domain,
+    DomainName: instance.state.domain
   }
   const apiMappings = await clients.apig.getApiMappings(paramsGet).promise()
   apiMappings.Items.forEach((am) => {
-    if (am.ApiId === instance.state.apiId) apiMapping = am
+    if (am.ApiId === instance.state.apiId) {
+      apiMapping = am
+    }
   })
 
   if (apiMapping) {
@@ -492,17 +518,13 @@ const findOrCreateApiMapping = async (instance, inputs, clients) => {
   }
 }
 
-
 /**
- * 
- * 
+ *
+ *
  * Create Or Update Logic
- * 
- * 
+ *
+ *
  */
-
-
-
 
 /*
  * Ensure the provided or default IAM Role exists
@@ -512,21 +534,33 @@ const findOrCreateApiMapping = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateRole = async (instance, inputs, clients) => {
-
   // Verify existing role, either provided or the previously created default role...
   if (inputs.roleArn) {
-    console.log(`User has provided their own IAM Role with the ARN: ${inputs.roleArn}.  Skipping verification and automatic role creation, and using that...`)
+    console.log(
+      `Verifying the provided IAM Role with the ARN: ${inputs.roleArn} in the inputs exists...`
+    )
+    const userRoleArn = await getRole(clients, inputs.roleArn) // Don't save user provided role to state, always reference it as an input, in case it changes
+    if (!userRoleArn) {
+      throw new Error(`The provided IAM Role with the ARN: ${inputs.roleArn} could not be found.`)
+    }
   }
-  
+
   if (!inputs.roleArn && instance.state.defaultLambdaRoleArn) {
-    console.log(`Verifying the default IAM Role found in state exists with the name: ${instance.state.defaultLambdaRoleName}...`)
-    instance.state.defaultLambdaRoleArn = await getRole(clients, instance.state.defaultLambdaRoleName)
+    console.log(
+      `Verifying the default IAM Role found in state exists with the name: ${instance.state.defaultLambdaRoleName}...`
+    )
+    instance.state.defaultLambdaRoleArn = await getRole(
+      clients,
+      instance.state.defaultLambdaRoleName
+    )
   }
 
   // Create a default lambda role...
   if (!inputs.roleArn && !instance.state.defaultLambdaRoleArn) {
     instance.state.defaultLambdaRoleName = `${instance.state.name}-lambda-role`
-    console.log(`IAM Role not found.  Creating a default role with the name: ${instance.state.defaultLambdaRoleName}`)
+    console.log(
+      `IAM Role not found.  Creating a default role with the name: ${instance.state.defaultLambdaRoleName}`
+    )
 
     const assumeRolePolicyDocument = {
       Version: '2012-10-17',
@@ -568,16 +602,19 @@ const createOrUpdateRole = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateLambda = async (instance, inputs, clients) => {
-
   // Verify existing lambda
   if (instance.state.lambdaArn && instance.state.lambdaName) {
-    console.log(`Verifying the AWS Lambda with the ARN: ${instance.state.lambdaArn} and Name: ${instance.state.lambdaName} found in state exists...`)
+    console.log(
+      `Verifying the AWS Lambda with the ARN: ${instance.state.lambdaArn} and Name: ${instance.state.lambdaName} found in state exists...`
+    )
     instance.state.lambdaArn = await getLambda(clients, instance.state.lambdaName)
   }
 
   if (!instance.state.lambdaArn) {
     instance.state.lambdaName = `${instance.state.name}-function` // WARNING: DO NOT ADJUST THIS, OR EVERYONE WILL DEPLOY NEW FUNCTIONS, RATHER THAN UPDATE THEIR OLD ONES.  ADJUST THIS ONLY WHEN WE'RE READY TO DO A BREAKING CHANGE.
-    console.log(`No AWS Lambda function found.  Creating one with the name: ${instance.state.lambdaName}`)
+    console.log(
+      `No AWS Lambda function found.  Creating one with the name: ${instance.state.lambdaName}`
+    )
     instance.state.lambdaArn = await createLambda(instance, inputs, clients)
     return
   }
@@ -595,7 +632,6 @@ const createOrUpdateLambda = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateApi = async (instance, inputs, clients) => {
-
   let apiId
   if (instance.state.apiId) {
     console.log(`Checking for existing API with ID: ${instance.state.apiId}`)
@@ -603,8 +639,10 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
     try {
       const res = await clients.apig.getApi(paramsGet).promise()
       apiId = res.ApiId
-    } catch(error) {
-      if (error.code !== 'NotFoundException') { throw error }
+    } catch (error) {
+      if (error.code !== 'NotFoundException') {
+        throw error
+      }
     }
   }
 
@@ -638,8 +676,8 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
   const apigArn = `arn:aws:execute-api:${instance.state.region}:${instance.state.awsAccountId}:${instance.state.apiId}/*/*`
   console.log(`Add permission to Lambda enabling API Gateway with this ARN to call it: ${apigArn}`)
   var paramsPermission = {
-    Action: 'lambda:InvokeFunction', 
-    FunctionName: instance.state.lambdaName, 
+    Action: 'lambda:InvokeFunction',
+    FunctionName: instance.state.lambdaName,
     Principal: 'apigateway.amazonaws.com',
     SourceArn: apigArn,
     StatementId: 'ID-1'
@@ -656,7 +694,6 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateDomain = async (instance, inputs, clients) => {
-
   instance.state.domain = inputs.domain
 
   instance.state.domainHostedZoneId = await getDomainHostedZoneId(instance, inputs, clients)
@@ -673,16 +710,13 @@ const createOrUpdateDomain = async (instance, inputs, clients) => {
   await ensureRecordSetForApiGCustomDomain(instance, inputs, clients)
 }
 
-
 /**
- * 
- * 
+ *
+ *
  * Removal Logic
- * 
- * 
+ *
+ *
  */
-
-
 
 /*
  * Removes a role from aws according to the provided config
@@ -691,7 +725,6 @@ const createOrUpdateDomain = async (instance, inputs, clients) => {
  * @param ${object} config - the component config
  */
 const removeRole = async (instance, clients) => {
-
   // If an automiatcally created IAM Role ARN is not in state, do not proceed...
   if (!instance.state.defaultLambdaRoleArn) {
     return
@@ -701,7 +734,7 @@ const removeRole = async (instance, clients) => {
     await clients.iam
       .detachRolePolicy({
         RoleName: instance.state.defaultLambdaRoleName,
-        PolicyArn: getDefaultLambdaRolePolicyArn(),
+        PolicyArn: getDefaultLambdaRolePolicyArn()
       })
       .promise()
     await clients.iam
@@ -723,8 +756,9 @@ const removeRole = async (instance, clients) => {
  * @param ${object} config - the component config
  */
 const removeLambda = async (instance, clients) => {
-
-  if (!instance.state.defaultLambdaRoleName) return
+  if (!instance.state.defaultLambdaRoleName) {
+    return
+  }
 
   console.log(`Removing lambda with arn ${instance.state.defaultLambdaRoleName}`)
 
@@ -742,14 +776,15 @@ const removeLambda = async (instance, clients) => {
  * Remove Mapping between API Gateway Custom Domain & HTTP API.  This has to be removed before API Gateway Custom Domain can be deleted.
  */
 const removeApiMapping = async (instance, clients) => {
-
-  if (!instance.state.apiMappingId) return
+  if (!instance.state.apiMappingId) {
+    return
+  }
 
   console.log(`Removing API Mapping with ID ${instance.state.apiMappingId}`)
 
   const params = {
     ApiMappingId: instance.state.apiMappingId,
-    DomainName: instance.state.domain,
+    DomainName: instance.state.domain
   }
 
   await clients.apig.deleteApiMapping(params).promise()
@@ -762,22 +797,26 @@ const removeApiMapping = async (instance, clients) => {
  * @param ${object} config - the component config
  */
 const removeApi = async (instance, clients) => {
-
-  if (!instance.state.apiId) return
+  if (!instance.state.apiId) {
+    return
+  }
 
   console.log(`Removing API with ID ${instance.state.apiId}`)
 
   try {
     await clients.apig.deleteApi({ ApiId: instance.state.apiId }).promise()
-  } catch (e) { console.log(e) }
+  } catch (e) {
+    console.log(e)
+  }
 }
 
 /**
  * Remove API Gateway Domain
  */
 const removeDomainFromApig = async (instance, clients) => {
-
-  if (!instance.state.domain) return
+  if (!instance.state.domain) {
+    return
+  }
 
   console.log(`Removing domain ${instance.state.domain} from API Gateway`)
 
@@ -792,8 +831,11 @@ const removeDomainFromApig = async (instance, clients) => {
  * Remove API Gateway Domain DNS Records
  */
 const removeDnsRecordsForApigDomain = async (instance, clients) => {
-
-  if (!instance.state.domain || !instance.state.domainHostedZoneId || !instance.state.distributionDomainName) {
+  if (
+    !instance.state.domain ||
+    !instance.state.domainHostedZoneId ||
+    !instance.state.distributionDomainName
+  ) {
     return
   }
 
