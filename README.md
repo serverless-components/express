@@ -85,12 +85,7 @@ $ cd ..
 
 Once you have the directory set up, you're now ready to deploy. Just run `serverless deploy` from within the directory containing the `serverless.yml` file.
 
-<br/>
-<br/>
-
-Your first deployment might take a little while, but subsequent deployment would just take few seconds. For more information on what's going on during deployment, you could run specify the `serverless deploy --debug` flag, which would view deployment logs in realtime, as shown in the screenshot on the right.
-
-
+Your first deployment might take a little while, but subsequent deployment would just take few seconds. For more information on what's going on during deployment, you could run specify the `serverless deploy --debug` flag, which would view deployment logs in realtime.
 
 
 ### 5. Configure
@@ -105,8 +100,6 @@ name: myExpressApp              # name of your express component instance.
 org: serverlessinc              # (optional) serverless dashboard org. default is the first org you created during signup.
 app: myApp                      # (optional) serverless dashboard app. default is the same as the name property.
 stage: dev                      # (optional) serverless dashboard stage. default is dev.
-
-
 
 inputs:
   src: ./src                    # path to the source folder.
@@ -128,11 +121,9 @@ Once you've chosen your configuration, run `serverless deploy` again (or simply 
 
 Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, you could enable dev mode on CLI.
 
-Dev mode enables the CLI to watch for changes in your source directory as you develop and deploy instantly on save. It also enables live logs from your express app so that you can see the results of your tests right away on the CLI as they happen.
+Dev mode allows the CLI to watch for changes in your source directory as you develop and deploy instantly on save. It also enables live logs from your express app so that you can see the results of your tests right away on the CLI as they happen.
 
-To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file:
-
-
+To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file.
 
 ### 7. Monitor
 
