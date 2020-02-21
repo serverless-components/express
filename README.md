@@ -142,15 +142,3 @@ You will also see a dashboard url where you'll be able to view more info about y
 <img src="/assets/remove-demo.gif" height="250" align="right">
 
 If you wanna tear down your entire express infrastructure that was created during deployment, just run `serverless remove`. Just like deployment, you could also specify a `--debug` flag for realtime logs from the express component running in the cloud.
-
-<br/>
-
-<br/>
-
-<br/>
-
-<br/>
-
-### New to Components?
-
-Checkout the [Serverless Components](https://github.com/serverless/components#cloud) repo for more information.
