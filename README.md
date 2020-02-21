@@ -135,7 +135,7 @@ Anytime you need to know more about your running express instance, you can simpl
 
 You will also see a dashboard url where you'll be able to view more info about your instance on the Serverless Dashboard.
 
-
+<br/>
 
 ### 8. Remove
 
@@ -143,7 +143,9 @@ You will also see a dashboard url where you'll be able to view more info about y
 
 If you wanna tear down your entire express infrastructure that was created during deployment, just run `serverless remove`. Just like deployment, you could also specify a `--debug` flag for realtime logs from the express component running in the cloud.
 
+<br/>
 
+<br/>
 
 &nbsp;
 
