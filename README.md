@@ -135,21 +135,7 @@ Anytime you need to know more about your running express instance, you can simpl
 
 You will also see a dashboard url where you'll be able to view more info about your instance on the Serverless Dashboard.
 
-```
-$ serverless info
 
-serverless ⚡ framework
-
-Status:       active
-Last Action:  deploy (3 minutes ago)
-Deployments:  4
-More Info:    https://dashboard.serverless.com/tenants/serverlessinc/applications/myApp/component/myExpressApp/stage/dev/overview
-
-url: https://usn0cmhx75.execute-api.us-east-1.amazonaws.com
-domain: api.serverless.com
-
-myExpressApp › Success
-```
 
 ### 8. Remove
 
@@ -157,14 +143,7 @@ myExpressApp › Success
 
 If you wanna tear down your entire express infrastructure that was created during deployment, just run `serverless remove`. Just like deployment, you could also specify a `--debug` flag for realtime logs from the express component running in the cloud.
 
-```
-$ serverless remove
 
-serverless ⚡ framework
-Action: "remove" - Stage: "dev" - App: "myApp" - Instance: "myExpressApp"
-
-5s › myExpressApp › Success
-```
 
 &nbsp;
 
