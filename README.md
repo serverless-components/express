@@ -129,6 +129,10 @@ To enable dev mode, simply run `serverless dev` from within the directory contai
 
 ### 7. Monitor
 
+Anytime you need to know more about your running express instance, you can simply run `serverless info` to view the most critical info. This is especially helpful when you wanna know the outputs of your instances so that you can reference them in another component. You can also provide the `--debug` flag to view the state of your component instance in case the deployment failed for any reason.
+
+You will also see a dashboard url where you'll be able to view more info about your instance on the Serverless Dashboard.
+
 ```
 $ serverless info
 
@@ -147,6 +151,8 @@ myExpressApp › Success
 
 ### 8. Remove
 
+If you wanna tear down your entire express infrastructure that was created during deployment, just run `serverless remove`. Just like deployment, you could also specify a `--debug` flag for realtime logs from the express component running in the cloud.
+
 ```
 $ serverless remove
 
@@ -160,4 +166,4 @@ Action: "remove" - Stage: "dev" - App: "myApp" - Instance: "myExpressApp"
 
 ### New to Components?
 
-Checkout the [Serverless Components](https://github.com/serverless/components) repo for more information.
+Checkout the [Serverless Components](https://github.com/serverless/components#cloud) repo for more information.
