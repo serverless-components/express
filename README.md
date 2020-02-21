@@ -7,7 +7,7 @@
 
 <br/>
 
-- [x] **Zero Configuration** - Just let us know where your code is, then deploy.
+- [x] **Zero Configuration** - All we need is your code, then just deploy.
 - [x] **Fast Deployments** - Deploy your entire express app in seconds.
 - [x] **Realtime Cloud Development** - Develop your express app directly on the cloud, with real time logs.
 - [x] **Team Collaboration** - Collaborate with your teamates with shared state and outputs.
