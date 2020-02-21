@@ -15,7 +15,7 @@
 
 <br/>
 
-<img src="/assets/demo.gif" height="250" align="right">
+<img src="/assets/deploy-demo.gif" height="250" align="right">
 
 1. [**Install**](#1-install)
 2. [**Login**](#2-login)
@@ -81,23 +81,16 @@ $ cd ..
 
 ### 4. Deploy
 
-Once you have the directory set up, you're now ready to deploy. Just run `serverless deploy` from within the directory containing the `serverless.yml` file. You should see output that looks like this:
+<img src="/assets/deploy-demo.gif" height="250" align="right">
 
-```
-$ serverless deploy
+Once you have the directory set up, you're now ready to deploy. Just run `serverless deploy` from within the directory containing the `serverless.yml` file.
 
-serverless ⚡ framework
-Action: "deploy" - Stage: "dev" - App: "express-api" - Instance: "express-api"
+<br/>
+<br/>
 
-url: https://usn0cmhx75.execute-api.us-east-1.amazonaws.com
-domain: api.serverless.com
+Your first deployment might take a little while, but subsequent deployment would just take few seconds. For more information on what's going on during deployment, you could run specify the `serverless deploy --debug` flag, which would view deployment logs in realtime, as shown in the screenshot on the right.
 
-More instance info at https://dashboard.serverless.com/tenants/serverlessinc/applications/express-api/component/express-api/stage/dev/overview
 
-6s › express-api › Success
-```
-
-Your first deployment might take a little while, but subsequent deployment would just take few seconds. For more information on what's going on during deployment, you could run specify the `serverless deploy --debug` flag, which would view deployment logs in realtime.
 
 
 ### 5. Configure
@@ -131,29 +124,17 @@ Once you've chosen your configuration, run `serverless deploy` again (or simply 
 
 ### 6. Develop
 
+<img src="/assets/dev-demo.gif" height="250" align="right">
+
 Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, you could enable dev mode on CLI.
 
 Dev mode enables the CLI to watch for changes in your source directory as you develop and deploy instantly on save. It also enables live logs from your express app so that you can see the results of your tests right away on the CLI as they happen.
 
 To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file:
 
-```
-$ serverless dev
 
-serverless ⚡ framework
-Dev Mode - Watching your Component for changes and enabling streaming logs, if supported...
 
-9:37:30 PM - express-api - deployment
-url: https://usn0cmhx75.execute-api.us-east-1.amazonaws.com
-
-9:39:07 PM - express-api - transaction - GET - /
-9:39:07 PM - express-api - log
-hello world
-
-express-api › Watching...
-```
-
-### 7. Manage
+### 7. Monitor
 
 ```
 $ serverless info
