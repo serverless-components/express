@@ -81,7 +81,7 @@ $ cd ..
 
 ### 4. Deploy
 
-<img src="/assets/deploy-demo.gif" height="250" align="right">
+<img src="/assets/deploy-debug-demo.gif" height="250" align="right">
 
 Once you have the directory set up, you're now ready to deploy. Just run `serverless deploy` from within the directory containing the `serverless.yml` file.
 
