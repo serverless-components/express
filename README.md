@@ -143,4 +143,6 @@ You will also see a dashboard url where you'll be able to view more info about y
 
 <img src="/assets/remove-demo.gif" height="250" align="right">
 
-If you wanna tear down your entire express infrastructure that was created during deployment, just run `serverless remove`. Just like deployment, you could also specify a `--debug` flag for realtime logs from the express component running in the cloud.
+If you wanna tear down your entire express infrastructure that was created during deployment, just run `serverless remove` in the directory containing the `serverless.yml` file. The express component will use all the data it needs from out built-in state storage system to delete your relavent cloud resources. You can deploy again anytime to bring back your express instance.
+
+Just like deployment, you could also specify a `--debug` flag for realtime logs from the express component running in the cloud.
