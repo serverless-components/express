@@ -97,14 +97,14 @@ The Express component is a zero configuration component, meaning that it'll work
 Here's a complete reference of the `serverless.yml` file for the express component:
 
 ```yml
-component: express              # name of the component. In that case, it's express.
-name: myExpressApp              # name of your express component instance.
+component: express              # (required) name of the component. In that case, it's express.
+name: express-api               # (required) name of your express component instance.
 org: serverlessinc              # (optional) serverless dashboard org. default is the first org you created during signup.
 app: myApp                      # (optional) serverless dashboard app. default is the same as the name property.
 stage: dev                      # (optional) serverless dashboard stage. default is dev.
 
 inputs:
-  src: ./src                    # path to the source folder.
+  src: ./src                    # (required) path to the source folder.
   memory: 512                   # (optional) memory size.
   timeout: 10                   # (optional) timeout.
   description: My Express App   # (optional) description.
