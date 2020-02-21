@@ -127,6 +127,8 @@ Dev mode allows the CLI to watch for changes in your source directory as you dev
 
 To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file.
 
+<br/>
+
 ### 7. Monitor
 
 <img src="/assets/info-demo.gif" height="250" align="right">
