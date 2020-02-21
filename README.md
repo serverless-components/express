@@ -105,13 +105,13 @@ stage: dev                      # (optional) serverless dashboard stage. default
 
 inputs:
   src: ./src                    # (required) path to the source folder.
-  memory: 512                   # (optional) memory size.
-  timeout: 10                   # (optional) timeout.
-  description: My Express App   # (optional) description.
+  memory: 512                   # (optional) lambda memory size.
+  timeout: 10                   # (optional) lambda timeout.
+  description: My Express App   # (optional) lambda & api gateway description.
   roleArn: arn:aws:abc          # (optional) custom role arn.
   env:                          # (optional) env vars.
     DEBUG: 'express:*'          #            this express specific env var will print express debug logs.
-  domain: api.serverless.com    # (optional) domain name
+  domain: api.serverless.com    # (optional) domain name.
 
 ```
 
