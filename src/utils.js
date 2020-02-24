@@ -64,7 +64,7 @@ const getClients = (credentials, region = 'us-east-1') => {
     lambda,
     apig,
     route53,
-    acm
+    acm,
   }
 }
 
@@ -533,7 +533,7 @@ const findOrCreateApiMapping = async (instance, inputs, clients) => {
  * @param ${object} inputs - the component inputs
  * @param ${object} clients - the aws clients object
  */
-const createOrUpdateRole = async (instance, inputs, clients) => {
+const createOrUpdateFunctionRole = async (instance, inputs, clients) => {
   // Verify existing role, either provided or the previously created default role...
   if (inputs.roleArn) {
     console.log(
@@ -591,6 +591,106 @@ const createOrUpdateRole = async (instance, inputs, clients) => {
       .promise()
 
     console.log(`Default Lambda IAM Role created with ARN ${instance.state.defaultLambdaRoleArn}`)
+  }
+}
+
+/*
+ * Ensure the Meta IAM Role exists
+ */
+const createOrUpdateMetaRole = async (instance, inputs, clients, serverlessAccountId) => {
+
+  // Create Meta Role for monitoring and more, if option is enabled.  It's enabled by default.
+  if (inputs.monitoring || typeof inputs.monitoring === 'undefined') {
+
+    // If meta role is in state, check if it exists already...
+    if (instance.state.metaRoleArn) {
+      console.log(
+        `Verifying the meta IAM Role found in state exists with the name: ${instance.state.metaRoleArn}...`
+      )
+      instance.state.metaRoleArn = await getRole(
+        clients,
+        instance.state.metaRoleName
+      )
+    }
+
+    // If it doesn't exist, create it...
+    if (!instance.state.metaRoleName) {
+
+      console.log(
+        `Meta IAM Role does not exist.  Creating one...`
+      )
+
+      instance.state.metaRoleName = `${instance.state.name}-meta-role`
+      instance.state.metaRolePolicyName = `${instance.state.name}-meta-policy`
+
+      const assumeRolePolicyDocumentMeta = {
+        Version: '2012-10-17',
+        Statement: {
+          Effect: 'Allow',
+          Principal: {
+            AWS: `arn:aws:iam::${serverlessAccountId}:root` // Serverless's Components account
+          },
+          Action: 'sts:AssumeRole'
+        }
+      }
+      const resMeta = await clients.iam
+        .createRole({
+          RoleName: instance.state.metaRoleName,
+          Path: '/',
+          AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicyDocumentMeta)
+        })
+        .promise()
+
+      instance.state.metaRoleArn = resMeta.Role.Arn
+
+      // Create a policy that only can access APIGateway and Lambda metrics, logs from CloudWatch...
+      const metaRolePolicy = {
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Effect: 'Allow',
+            Resource: '*',
+            Action: [
+              'cloudwatch:Describe*',
+              'cloudwatch:Get*',
+              'cloudwatch:List*',
+              'logs:Get*',
+              'logs:List*',
+              'logs:Describe*',
+              'logs:TestMetricFilter',
+              'logs:FilterLogEvents',
+            ],
+            // TODO: Finish this.  Haven't been able to get this to work.  Perhaps there is a missing service (Cloudfront?)
+            // Condition: {
+            //   StringEquals: {
+            //     'cloudwatch:namespace': [
+            //       'AWS/ApiGateway',
+            //       'AWS/Lambda'
+            //     ]
+            //   }
+            // }
+          }
+        ]
+      }
+
+      const createPolicyParams = {
+        PolicyDocument: JSON.stringify(metaRolePolicy),
+        PolicyName: instance.state.metaRolePolicyName, /* required */
+        Description: 'A policy for the Serverless Express Component to access metrics and more'
+      }
+      const resPolicy = await clients.iam
+        .createPolicy(createPolicyParams).promise()
+
+      instance.state.metaRolePolicyArn = resPolicy.Policy.Arn
+
+      // Attach it to the role...
+      await clients.iam
+        .attachRolePolicy({
+          RoleName: instance.state.metaRoleName,
+          PolicyArn: instance.state.metaRolePolicyArn,
+        })
+        .promise()
+    }
   }
 }
 
@@ -719,32 +819,63 @@ const createOrUpdateDomain = async (instance, inputs, clients) => {
  */
 
 /*
- * Removes a role from aws according to the provided config
+ * Removes the Function & Meta Roles from aws according to the provided config
  *
  * @param ${object} clients - an object containing aws sdk clients
  * @param ${object} config - the component config
  */
-const removeRole = async (instance, clients) => {
-  // If an automiatcally created IAM Role ARN is not in state, do not proceed...
-  if (!instance.state.defaultLambdaRoleArn) {
-    return
+const removeAllRoles = async (instance, clients) => {
+
+  // Delete Function Role
+  if (instance.state.defaultLambdaRoleArn) {
+    console.log(
+      `Deleting the default Function Role...`
+    )
+    try {
+      await clients.iam
+        .detachRolePolicy({
+          RoleName: instance.state.defaultLambdaRoleName,
+          PolicyArn: getDefaultLambdaRolePolicyArn()
+        })
+        .promise()
+      await clients.iam
+        .deleteRole({
+          RoleName: instance.state.defaultLambdaRoleName
+        })
+        .promise()
+    } catch (error) {
+      if (error.code !== 'NoSuchEntity') {
+        throw error
+      }
+    }
   }
 
-  try {
-    await clients.iam
-      .detachRolePolicy({
-        RoleName: instance.state.defaultLambdaRoleName,
-        PolicyArn: getDefaultLambdaRolePolicyArn()
-      })
-      .promise()
-    await clients.iam
-      .deleteRole({
-        RoleName: instance.state.defaultLambdaRoleName
-      })
-      .promise()
-  } catch (error) {
-    if (error.code !== 'NoSuchEntity') {
-      throw error
+  // Delete Meta Role
+  if (instance.state.metaRoleName) {
+    console.log(
+      `Deleting the Meta Role...`
+    )
+    try {
+      await clients.iam
+        .detachRolePolicy({
+          RoleName: instance.state.metaRoleName,
+          PolicyArn: instance.state.metaRolePolicyArn,
+        })
+        .promise()
+      await clients.iam
+        .deleteRole({
+          RoleName: instance.state.metaRoleName
+        })
+        .promise()
+      await clients.iam
+        .deletePolicy({
+          PolicyArn: instance.state.metaRolePolicyArn
+        })
+        .promise()
+    } catch (error) {
+      if (error.code !== 'NoSuchEntity') {
+        throw error
+      }
     }
   }
 }
@@ -873,17 +1004,203 @@ const removeDomain = async (instance, clients) => {
   await removeDnsRecordsForApigDomain(instance, clients)
 }
 
+/**
+ *
+ *
+ * Metrics Logic
+ *
+ *
+ */
+
+/**
+ * Get metrics from cloudwatch
+ * @param {*} clients 
+ * @param {*} rangeStart MUST be a moment() object
+ * @param {*} rangeEnd MUST be a moment() object
+ */
+const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, rangeEnd) => {
+
+  const sts = new AWS.STS({ region })
+
+  // Assume Role
+  const assumeParams = {}
+  assumeParams.RoleSessionName = `session${Date.now()}`
+  assumeParams.RoleArn = roleArn
+  assumeParams.DurationSeconds = 900
+
+  const resAssume = await sts.assumeRole(assumeParams).promise()
+
+  const roleCreds = {}
+  roleCreds.accessKeyId = resAssume.Credentials.AccessKeyId
+  roleCreds.secretAccessKey = resAssume.Credentials.SecretAccessKey
+  roleCreds.sessionToken = resAssume.Credentials.SessionToken
+  const cloudwatch = new AWS.CloudWatch({ credentials: roleCreds, region })
+
+  // Prepare CloudWatch queries
+  const params = {
+    StartTime: rangeStart.unix(),
+    EndTime: rangeEnd.unix(),
+    // NextToken: null,
+    ScanBy: 'TimestampAscending',
+    MetricDataQueries: [
+      {
+        Id: 'metric_alias1',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: 'Count',
+            Namespace: 'AWS/ApiGateway',
+            Dimensions: [
+              {
+                Name: 'Stage',
+                Value: '$default'
+              },
+              {
+                Name: 'ApiId',
+                Value: apiId
+              }
+            ],
+          },
+          Period: '3600', // Hours
+          Stat: 'Sum',
+        },
+      },
+      {
+        Id: 'metric_alias2',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: '5xx',
+            Namespace: 'AWS/ApiGateway',
+            Dimensions: [
+              {
+                Name: 'Stage',
+                Value: '$default'
+              },
+              {
+                Name: 'ApiId',
+                Value: apiId
+              }
+            ],
+          },
+          Period: '3600', // Hours
+          Stat: 'Sum',
+        },
+      },
+      {
+        Id: 'metric_alias3',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: '4xx',
+            Namespace: 'AWS/ApiGateway',
+            Dimensions: [
+              {
+                Name: 'Stage',
+                Value: '$default'
+              },
+              {
+                Name: 'ApiId',
+                Value: apiId
+              }
+            ],
+          },
+          Period: '3600', // Hours
+          Stat: 'Sum',
+        },
+      },
+      {
+        Id: 'metric_alias4',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: 'Latency',
+            Namespace: 'AWS/ApiGateway',
+            Dimensions: [
+              {
+                Name: 'Stage',
+                Value: '$default'
+              },
+              {
+                Name: 'ApiId',
+                Value: apiId
+              }
+            ],
+          },
+          Period: '3600', // Hours
+          Stat: 'Average',
+        },
+      },
+    ],
+  }
+
+  const data = await cloudwatch.getMetricData(params).promise()
+
+  const result = {
+    rangeStart: rangeStart.toISOString(),
+    rangeEnd: rangeEnd.toISOString(),
+    metrics: [] 
+  }
+
+  // Format Results into standard format
+  if (data && data.MetricDataResults) {
+    data.MetricDataResults.forEach((cwMetric) => {
+
+      // Create metric
+      const metric = {}
+      metric.type = 'bar'
+
+      // Title the metric
+      if (cwMetric.Label === 'Count') {
+        metric.title = 'Requests'
+      }
+      if (cwMetric.Label === '5xx') { 
+        metric.title = 'Errors - 5xx'
+        metric.color = 'red'
+      }
+      if (cwMetric.Label === '4xx') {
+        metric.title = 'Errors - 4xx'
+        metric.color = 'red'
+      }
+      if (cwMetric.Label === 'Latency') {
+        metric.title = 'Latency'
+        metric.color = 'blue'
+      }
+
+      // Format metric
+      metric.values = []
+      metric.total = 0
+      cwMetric.Timestamps.forEach((val, i) => {
+        if (!metric.values[i]) metric.values[i] = { timestamp: val }
+        else metric.values[i].timestamp = val
+      })
+      cwMetric.Values.forEach((val, i) => {
+        if (!metric.values[i]) metric.values[i] = { value: val }
+        else metric.values[i].value = val
+        metric.total = Math.round(metric.total + val)
+      })
+
+      // Add metric
+      result.metrics.push(metric)
+    })
+  }
+
+  return result
+}
+
 module.exports = {
   generateId,
   sleep,
   getClients,
   packageExpress,
-  createOrUpdateRole,
+  createOrUpdateFunctionRole,
+  createOrUpdateMetaRole,
   createOrUpdateLambda,
   createOrUpdateApi,
   createOrUpdateDomain,
   removeApi,
-  removeRole,
+  removeAllRoles,
   removeLambda,
-  removeDomain
+  removeDomain,
+  getMetrics,
 }
