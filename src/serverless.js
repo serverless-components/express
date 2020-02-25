@@ -86,8 +86,13 @@ class Express extends Component {
    */
   async metrics(inputs = {}) {
 
-    inputs.rangeEnd = inputs.rangeEnd ? moment(inputs.rangeEnd) : moment().endOf('hour').add(1, 'minute')
-    inputs.rangeStart = inputs.rangeStart ? moment(inputs.rangeStart) : moment().endOf('hour').add(1, 'minute').subtract(1, 'days')
+    // Validate
+    if (!inputs.rangeStart || !inputs.rangeEnd) {
+      throw new Error('rangeStart and rangeEnd are require inputs')
+    }
+
+    inputs.rangeStart = moment(inputs.rangeStart)
+    inputs.rangeEnd = moment(inputs.rangeEnd)
 
     // Validate: Start is before End
     if (inputs.rangeStart.isAfter(inputs.rangeEnd)) {
@@ -95,7 +100,7 @@ class Express extends Component {
     }
 
     // Validate: End is not longer than 30 days
-    if (inputs.rangeStart.diff(inputs.rangeEnd, 'days') > 30) {
+    if (inputs.rangeStart.diff(inputs.rangeEnd, 'days') >= 31) {
       throw new Error(`The range cannot be longer than 30 days.  The supplied range is: ${inputs.rangeStart.diff(inputs.rangeEnd, 'days')}`)
     }
 

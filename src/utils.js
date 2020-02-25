@@ -1036,6 +1036,19 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   roleCreds.sessionToken = resAssume.Credentials.SessionToken
   const cloudwatch = new AWS.CloudWatch({ credentials: roleCreds, region })
 
+  // Determine Cloudwatch reporting period
+  let period
+  const diffMinutes = rangeStart.diff(rangeEnd, 'minutes')
+  if (diffMinutes <= 16) { // 16 mins
+    period = 60 // 1 min
+  } else if (diffMinutes <= 61) { // 1 hour
+    period = 300 // 5 mins
+  } else if (diffMinutes <= 1500) { // 24 hours
+    period = 3600 // hour
+  } else {
+    period = 86400 // day
+  }
+
   // Prepare CloudWatch queries
   const params = {
     StartTime: rangeStart.unix(),
@@ -1061,7 +1074,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
               }
             ],
           },
-          Period: '3600', // Hours
+          Period: period,
           Stat: 'Sum',
         },
       },
@@ -1083,7 +1096,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
               }
             ],
           },
-          Period: '3600', // Hours
+          Period: period,
           Stat: 'Sum',
         },
       },
@@ -1105,7 +1118,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
               }
             ],
           },
-          Period: '3600', // Hours
+          Period: period,
           Stat: 'Sum',
         },
       },
@@ -1127,7 +1140,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
               }
             ],
           },
-          Period: '3600', // Hours
+          Period: period,
           Stat: 'Average',
         },
       },
@@ -1179,6 +1192,11 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         else metric.values[i].value = val
         metric.total = Math.round(metric.total + val)
       })
+
+      // Don't add total for latency, only the average
+      if (cwMetric.Label === 'Latency') {
+        metric.total = Math.round(metric.total/cwMetric.Values.length)
+      }
 
       // Add metric
       result.metrics.push(metric)
