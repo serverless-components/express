@@ -12,6 +12,7 @@
   "author": "Serverless, Inc.",
   "license": "Apache",
   "dependencies": {
-    "aws-serverless-express": "^3.3.6"
+    "aws-serverless-express": "^3.3.6",
+    "express": "^4.17.1"
   }
 }

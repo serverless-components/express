@@ -5,7 +5,7 @@ const agent = new https.Agent({
   keepAlive: true
 })
 
-const { existsSync, readFile, copySync } = require('fs-extra')
+const { readFile, copySync } = require('fs-extra')
 
 /*
  * Pauses execution for the provided miliseconds
@@ -97,23 +97,6 @@ const packageExpress = async (instance, inputs) => {
   console.log(`Unzipping ${inputs.src}...`)
   const sourceDirectory = await instance.unzip(inputs.src)
   console.log(`Files unzipped into ${sourceDirectory}...`)
-
-  // make sure user actually ran "npm install", otherwise
-  // they'd struggle with an "internal server error" when visting the url
-  const expressDirectory = path.join(sourceDirectory, 'node_modules', 'express')
-  if (!existsSync(expressDirectory)) {
-    throw new Error(
-      `"node_modules/express" dependency was not found in your source code. Did you run "npm install"?`
-    )
-  }
-
-  // make sure user has an app.js file, because the shim expect it.
-  const appFile = path.join(sourceDirectory, 'app.js')
-  if (!existsSync(appFile)) {
-    throw new Error(
-      `"app.js" file was not found in your source directory. Please add a valid "app.js" file and deploy again.`
-    )
-  }
 
   // add shim to the source directory
   console.log(`Installing Express + AWS Lambda handler...`)

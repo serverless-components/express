@@ -25,10 +25,6 @@ class Express extends Component {
     console.log(`Deploying Express App...`)
 
     // Validate
-    if (!inputs.src) {
-      throw new Error(`Missing "src" input.`)
-    }
-    // Validate
     if (inputs.timeout && inputs.timeout > 30) {
       throw new Error('"timeout" can not be greater than 30 seconds.')
     }
