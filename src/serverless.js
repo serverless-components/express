@@ -13,17 +13,15 @@ const {
   removeAllRoles,
   removeLambda,
   removeDomain,
-  getMetrics,
+  getMetrics
 } = require('./utils')
 
 class Express extends Component {
-
   /**
    * Deploy
-   * @param {object} inputs 
+   * @param {object} inputs
    */
   async deploy(inputs) {
-
     console.log(`Deploying Express App...`)
 
     // Validate
@@ -45,7 +43,7 @@ class Express extends Component {
 
     await Promise.all([
       createOrUpdateFunctionRole(this, inputs, clients),
-      createOrUpdateMetaRole(this, inputs, clients, this.accountId),
+      createOrUpdateMetaRole(this, inputs, clients, this.accountId)
     ])
 
     await createOrUpdateLambda(this, inputs, clients)
@@ -55,12 +53,16 @@ class Express extends Component {
     if (inputs.domain) {
       await createOrUpdateDomain(this, inputs, clients)
     } else {
-      if (this.state.domain) delete this.state.domain
+      if (this.state.domain) {
+        delete this.state.domain
+      }
     }
 
     const outputs = {}
     outputs.url = this.state.url
-    if (this.state.domain) outputs.domain = `https://${this.state.domain}`
+    if (this.state.domain) {
+      outputs.domain = `https://${this.state.domain}`
+    }
 
     return outputs
   }
@@ -69,7 +71,6 @@ class Express extends Component {
    * Remove
    */
   async remove() {
-
     const clients = getClients(this.credentials.aws, this.state.region)
 
     await removeAllRoles(this, clients)
@@ -85,7 +86,6 @@ class Express extends Component {
    * Metrics
    */
   async metrics(inputs = {}) {
-
     // Validate
     if (!inputs.rangeStart || !inputs.rangeEnd) {
       throw new Error('rangeStart and rangeEnd are require inputs')
@@ -101,10 +101,22 @@ class Express extends Component {
 
     // Validate: End is not longer than 30 days
     if (inputs.rangeStart.diff(inputs.rangeEnd, 'days') >= 31) {
-      throw new Error(`The range cannot be longer than 30 days.  The supplied range is: ${inputs.rangeStart.diff(inputs.rangeEnd, 'days')}`)
+      throw new Error(
+        `The range cannot be longer than 30 days.  The supplied range is: ${inputs.rangeStart.diff(
+          inputs.rangeEnd,
+          'days'
+        )}`
+      )
     }
 
-    const result = await getMetrics(this.credentials.aws, this.state.region, this.state.metaRoleArn, this.state.apiId, inputs.rangeStart, inputs.rangeEnd)
+    const result = await getMetrics(
+      this.credentials.aws,
+      this.state.region,
+      this.state.metaRoleArn,
+      this.state.apiId,
+      inputs.rangeStart,
+      inputs.rangeEnd
+    )
 
     return result
   }

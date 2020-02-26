@@ -5,7 +5,7 @@ const agent = new https.Agent({
   keepAlive: true
 })
 
-const { readFile, copySync } = require('fs-extra')
+const { existsSync, readFile, copySync } = require('fs-extra')
 
 /*
  * Pauses execution for the provided miliseconds
@@ -64,7 +64,7 @@ const getClients = (credentials, region = 'us-east-1') => {
     lambda,
     apig,
     route53,
-    acm,
+    acm
   }
 }
 
@@ -97,6 +97,23 @@ const packageExpress = async (instance, inputs) => {
   console.log(`Unzipping ${inputs.src}...`)
   const sourceDirectory = await instance.unzip(inputs.src)
   console.log(`Files unzipped into ${sourceDirectory}...`)
+
+  // make sure user actually ran "npm install", otherwise
+  // they'd struggle with an "internal server error" when visting the url
+  const expressDirectory = path.join(sourceDirectory, 'node_modules', 'express')
+  if (!existsSync(expressDirectory)) {
+    throw new Error(
+      `"node_modules/express" dependency was not found in your source code. Did you run "npm install"?`
+    )
+  }
+
+  // make sure user has an app.js file, because the shim expect it.
+  const appFile = path.join(sourceDirectory, 'app.js')
+  if (!existsSync(appFile)) {
+    throw new Error(
+      `"app.js" file was not found in your source directory. Please add a valid "app.js" file and deploy again.`
+    )
+  }
 
   // add shim to the source directory
   console.log(`Installing Express + AWS Lambda handler...`)
@@ -243,8 +260,22 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
     functionConfigParams.Layers = inputs.layers
   }
 
-  const res = await clients.lambda.updateFunctionConfiguration(functionConfigParams).promise()
-  return res.FunctionArn
+  try {
+    const res = await clients.lambda.updateFunctionConfiguration(functionConfigParams).promise()
+    return res.FunctionArn
+  } catch (e) {
+    if (
+      e.message.includes(`The role defined for the function cannot be assumed by Lambda`) ||
+      e.message.includes(
+        `Lambda was unable to configure access to your environment variables because the KMS key is invalid`
+      )
+    ) {
+      // we need to wait around 2 seconds after the role is created before it can be assumed
+      await sleep(2000)
+      return updateLambdaConfig(instance, inputs, clients)
+    }
+    throw e
+  }
 }
 
 /**
@@ -598,27 +629,19 @@ const createOrUpdateFunctionRole = async (instance, inputs, clients) => {
  * Ensure the Meta IAM Role exists
  */
 const createOrUpdateMetaRole = async (instance, inputs, clients, serverlessAccountId) => {
-
   // Create Meta Role for monitoring and more, if option is enabled.  It's enabled by default.
   if (inputs.monitoring || typeof inputs.monitoring === 'undefined') {
-
     // If meta role is in state, check if it exists already...
     if (instance.state.metaRoleArn) {
       console.log(
         `Verifying the meta IAM Role found in state exists with the name: ${instance.state.metaRoleArn}...`
       )
-      instance.state.metaRoleArn = await getRole(
-        clients,
-        instance.state.metaRoleName
-      )
+      instance.state.metaRoleArn = await getRole(clients, instance.state.metaRoleName)
     }
 
     // If it doesn't exist, create it...
     if (!instance.state.metaRoleName) {
-
-      console.log(
-        `Meta IAM Role does not exist.  Creating one...`
-      )
+      console.log(`Meta IAM Role does not exist.  Creating one...`)
 
       instance.state.metaRoleName = `${instance.state.name}-meta-role`
       instance.state.metaRolePolicyName = `${instance.state.name}-meta-policy`
@@ -658,8 +681,8 @@ const createOrUpdateMetaRole = async (instance, inputs, clients, serverlessAccou
               'logs:List*',
               'logs:Describe*',
               'logs:TestMetricFilter',
-              'logs:FilterLogEvents',
-            ],
+              'logs:FilterLogEvents'
+            ]
             // TODO: Finish this.  Haven't been able to get this to work.  Perhaps there is a missing service (Cloudfront?)
             // Condition: {
             //   StringEquals: {
@@ -675,11 +698,10 @@ const createOrUpdateMetaRole = async (instance, inputs, clients, serverlessAccou
 
       const createPolicyParams = {
         PolicyDocument: JSON.stringify(metaRolePolicy),
-        PolicyName: instance.state.metaRolePolicyName, /* required */
+        PolicyName: instance.state.metaRolePolicyName /* required */,
         Description: 'A policy for the Serverless Express Component to access metrics and more'
       }
-      const resPolicy = await clients.iam
-        .createPolicy(createPolicyParams).promise()
+      const resPolicy = await clients.iam.createPolicy(createPolicyParams).promise()
 
       instance.state.metaRolePolicyArn = resPolicy.Policy.Arn
 
@@ -687,7 +709,7 @@ const createOrUpdateMetaRole = async (instance, inputs, clients, serverlessAccou
       await clients.iam
         .attachRolePolicy({
           RoleName: instance.state.metaRoleName,
-          PolicyArn: instance.state.metaRolePolicyArn,
+          PolicyArn: instance.state.metaRolePolicyArn
         })
         .promise()
     }
@@ -825,12 +847,9 @@ const createOrUpdateDomain = async (instance, inputs, clients) => {
  * @param ${object} config - the component config
  */
 const removeAllRoles = async (instance, clients) => {
-
   // Delete Function Role
   if (instance.state.defaultLambdaRoleArn) {
-    console.log(
-      `Deleting the default Function Role...`
-    )
+    console.log(`Deleting the default Function Role...`)
     try {
       await clients.iam
         .detachRolePolicy({
@@ -852,14 +871,12 @@ const removeAllRoles = async (instance, clients) => {
 
   // Delete Meta Role
   if (instance.state.metaRoleName) {
-    console.log(
-      `Deleting the Meta Role...`
-    )
+    console.log(`Deleting the Meta Role...`)
     try {
       await clients.iam
         .detachRolePolicy({
           RoleName: instance.state.metaRoleName,
-          PolicyArn: instance.state.metaRolePolicyArn,
+          PolicyArn: instance.state.metaRolePolicyArn
         })
         .promise()
       await clients.iam
@@ -887,14 +904,14 @@ const removeAllRoles = async (instance, clients) => {
  * @param ${object} config - the component config
  */
 const removeLambda = async (instance, clients) => {
-  if (!instance.state.defaultLambdaRoleName) {
+  if (!instance.state.lambdaName) {
     return
   }
 
-  console.log(`Removing lambda with arn ${instance.state.defaultLambdaRoleName}`)
+  console.log(`Removing lambda with arn ${instance.state.lambdaArn}`)
 
   try {
-    const params = { FunctionName: instance.state.defaultLambdaRoleName }
+    const params = { FunctionName: instance.state.lambdaName }
     await clients.lambda.deleteFunction(params).promise()
   } catch (error) {
     if (error.code !== 'ResourceNotFoundException') {
@@ -1014,12 +1031,11 @@ const removeDomain = async (instance, clients) => {
 
 /**
  * Get metrics from cloudwatch
- * @param {*} clients 
+ * @param {*} clients
  * @param {*} rangeStart MUST be a moment() object
  * @param {*} rangeEnd MUST be a moment() object
  */
 const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, rangeEnd) => {
-
   const sts = new AWS.STS({ region })
 
   // Assume Role
@@ -1039,11 +1055,14 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   // Determine Cloudwatch reporting period
   let period
   const diffMinutes = rangeStart.diff(rangeEnd, 'minutes')
-  if (diffMinutes <= 16) { // 16 mins
+  if (diffMinutes <= 16) {
+    // 16 mins
     period = 60 // 1 min
-  } else if (diffMinutes <= 61) { // 1 hour
+  } else if (diffMinutes <= 61) {
+    // 1 hour
     period = 300 // 5 mins
-  } else if (diffMinutes <= 1500) { // 24 hours
+  } else if (diffMinutes <= 1500) {
+    // 24 hours
     period = 3600 // hour
   } else {
     period = 86400 // day
@@ -1072,11 +1091,11 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
                 Name: 'ApiId',
                 Value: apiId
               }
-            ],
+            ]
           },
           Period: period,
-          Stat: 'Sum',
-        },
+          Stat: 'Sum'
+        }
       },
       {
         Id: 'metric_alias2',
@@ -1094,11 +1113,11 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
                 Name: 'ApiId',
                 Value: apiId
               }
-            ],
+            ]
           },
           Period: period,
-          Stat: 'Sum',
-        },
+          Stat: 'Sum'
+        }
       },
       {
         Id: 'metric_alias3',
@@ -1116,11 +1135,11 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
                 Name: 'ApiId',
                 Value: apiId
               }
-            ],
+            ]
           },
           Period: period,
-          Stat: 'Sum',
-        },
+          Stat: 'Sum'
+        }
       },
       {
         Id: 'metric_alias4',
@@ -1138,13 +1157,13 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
                 Name: 'ApiId',
                 Value: apiId
               }
-            ],
+            ]
           },
           Period: period,
-          Stat: 'Average',
-        },
-      },
-    ],
+          Stat: 'Average'
+        }
+      }
+    ]
   }
 
   const data = await cloudwatch.getMetricData(params).promise()
@@ -1152,13 +1171,12 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   const result = {
     rangeStart: rangeStart.toISOString(),
     rangeEnd: rangeEnd.toISOString(),
-    metrics: [] 
+    metrics: []
   }
 
   // Format Results into standard format
   if (data && data.MetricDataResults) {
     data.MetricDataResults.forEach((cwMetric) => {
-
       // Create metric
       const metric = {}
       metric.type = 'bar'
@@ -1167,7 +1185,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
       if (cwMetric.Label === 'Count') {
         metric.title = 'Requests'
       }
-      if (cwMetric.Label === '5xx') { 
+      if (cwMetric.Label === '5xx') {
         metric.title = 'Errors - 5xx'
         metric.color = 'red'
       }
@@ -1184,18 +1202,24 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
       metric.values = []
       metric.total = 0
       cwMetric.Timestamps.forEach((val, i) => {
-        if (!metric.values[i]) metric.values[i] = { timestamp: val }
-        else metric.values[i].timestamp = val
+        if (!metric.values[i]) {
+          metric.values[i] = { timestamp: val }
+        } else {
+          metric.values[i].timestamp = val
+        }
       })
       cwMetric.Values.forEach((val, i) => {
-        if (!metric.values[i]) metric.values[i] = { value: val }
-        else metric.values[i].value = val
+        if (!metric.values[i]) {
+          metric.values[i] = { value: val }
+        } else {
+          metric.values[i].value = val
+        }
         metric.total = Math.round(metric.total + val)
       })
 
       // Don't add total for latency, only the average
       if (cwMetric.Label === 'Latency') {
-        metric.total = Math.round(metric.total/cwMetric.Values.length)
+        metric.total = Math.round(metric.total / cwMetric.Values.length)
       }
 
       // Add metric
@@ -1220,5 +1244,5 @@ module.exports = {
   removeAllRoles,
   removeLambda,
   removeDomain,
-  getMetrics,
+  getMetrics
 }
