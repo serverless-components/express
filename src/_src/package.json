@@ -1,7 +1,7 @@
 {
   "name": "@serverless/express",
   "version": "1.0.0",
-  "main": "./handler.js",
+  "main": "./app.js",
   "publishConfig": {
     "access": "public"
   },
@@ -12,6 +12,6 @@
   "author": "Serverless, Inc.",
   "license": "Apache",
   "dependencies": {
-    "aws-serverless-express": "^3.3.6"
+    "express": "^4.17.1"
   }
 }

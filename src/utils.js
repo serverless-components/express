@@ -34,7 +34,7 @@ const getDefaultDescription = (instance) => {
  * The ARN of the Lambda IAM Policy used for the default IAM Role
  */
 const getDefaultLambdaRolePolicyArn = () => {
-  return 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+  return 'arn:aws:iam::aws:policy/AWSLambdaFullAccess'
 }
 
 /*
@@ -94,7 +94,7 @@ const packageExpress = async (instance, inputs) => {
   console.log(`Packaging Express.js application...`)
 
   // unzip source zip file
-  console.log(`Unzipping ${inputs.src}...`)
+  console.log(`Unzipping ${inputs.src || 'files'}...`)
   const sourceDirectory = await instance.unzip(inputs.src)
   console.log(`Files unzipped into ${sourceDirectory}...`)
 
@@ -106,7 +106,13 @@ const packageExpress = async (instance, inputs) => {
   console.log(`Installing Serverless Framework SDK...`)
   instance.state.handler = await instance.addSDK(sourceDirectory, '_express/handler.handler')
 
+  if (!inputs.src) {
+    // add default express app
+    console.log(`Installing Default Express App...`)
+    copySync(path.join(__dirname, '_src'), path.join(sourceDirectory, '_src'))
+  }
   // zip the source directory with the shim and the sdk
+
   console.log(`Zipping files...`)
   const zipPath = await instance.zip(sourceDirectory)
   console.log(`Files zipped into ${zipPath}...`)
@@ -581,7 +587,7 @@ const createOrUpdateFunctionRole = async (instance, inputs, clients) => {
       Statement: {
         Effect: 'Allow',
         Principal: {
-          Service: ['lambda.amazonaws.com', 'apigateway.amazonaws.com']
+          Service: ['lambda.amazonaws.com']
         },
         Action: 'sts:AssumeRole'
       }
@@ -785,7 +791,7 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
     FunctionName: instance.state.lambdaName,
     Principal: 'apigateway.amazonaws.com',
     SourceArn: apigArn,
-    StatementId: 'ID-1'
+    StatementId: `API-${instance.state.apiId}`
   }
   await clients.lambda.addPermission(paramsPermission).promise()
   console.log(`Permission successfully added to AWS Lambda for API Gateway`)
