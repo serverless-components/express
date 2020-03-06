@@ -171,7 +171,7 @@ const createLambda = async (instance, inputs, clients) => {
     Description: inputs.description || getDefaultDescription(instance),
     Handler: instance.state.handler,
     MemorySize: inputs.memory || 1536,
-    Publish: false,
+    Publish: true,
     Role: inputs.roleArn || instance.state.defaultLambdaRoleArn, // Default to automatically created role
     Runtime: 'nodejs12.x',
     Timeout: inputs.timeout || 29, // Meet the APIG timeout limit, don't exceed it
@@ -186,11 +186,11 @@ const createLambda = async (instance, inputs, clients) => {
 
   params.Code.ZipFile = await readFile(instance.state.zipPath)
 
-  let lambdaArn
   try {
     const res = await clients.lambda.createFunction(params).promise()
     console.log(`Lambda created with ARN ${res.FunctionArn}`)
-    lambdaArn = res.FunctionArn
+    instance.state.lambdaArn = res.FunctionArn
+    instance.state.lambdaVersion = res.Version
   } catch (e) {
     if (
       e.message.includes(`The role defined for the function cannot be assumed by Lambda`) ||
@@ -204,8 +204,6 @@ const createLambda = async (instance, inputs, clients) => {
     }
     throw e
   }
-
-  return lambdaArn
 }
 
 /*
@@ -218,10 +216,12 @@ const createLambda = async (instance, inputs, clients) => {
 const updateLambdaCode = async (instance, inputs, clients) => {
   const functionCodeParams = {
     FunctionName: instance.state.lambdaName,
-    Publish: false
+    Publish: true
   }
   functionCodeParams.ZipFile = await readFile(instance.state.zipPath)
-  await clients.lambda.updateFunctionCode(functionCodeParams).promise()
+  const res = await clients.lambda.updateFunctionCode(functionCodeParams).promise()
+  instance.state.lambdaArn = res.FunctionArn
+  instance.state.lambdaVersion = res.Version
 }
 
 /*
@@ -726,13 +726,36 @@ const createOrUpdateLambda = async (instance, inputs, clients) => {
     console.log(
       `No AWS Lambda function found.  Creating one with the name: ${instance.state.lambdaName}`
     )
-    instance.state.lambdaArn = await createLambda(instance, inputs, clients)
-    return
+    return createLambda(instance, inputs, clients)
   }
 
   console.log(`AWS Lambda function found.  Updating it's configuration and code...`)
-  await updateLambdaCode(instance, inputs, clients)
   await updateLambdaConfig(instance, inputs, clients)
+  await updateLambdaCode(instance, inputs, clients)
+  console.log(`AWS Lambda version "${instance.state.lambdaVersion}" published`)
+  console.log(`AWS Lambda function updated with ARN: ${instance.state.lambdaArn}`)
+}
+
+/*
+ * Adds permission to API Gateway to invoke the latest lambda version/alias
+ *
+ * @param ${instance} instance - the component instance
+ * @param ${object} inputs - the component inputs
+ * @param ${object} clients - the aws clients object
+ */
+const addPermission = async (instance, inputs, clients) => {
+  const lambdaArn = inputs.alias ? instance.state.aliasArn : instance.state.lambdaArn
+  const apigArn = `arn:aws:execute-api:${instance.state.region}:${instance.state.awsAccountId}:${instance.state.apiId}/*/*`
+  console.log(`Add permission to Lambda enabling API Gateway with this ARN to call it: ${apigArn}`)
+  var paramsPermission = {
+    Action: 'lambda:InvokeFunction',
+    FunctionName: lambdaArn,
+    Principal: 'apigateway.amazonaws.com',
+    SourceArn: apigArn,
+    StatementId: `API-${instance.state.apiId}-${instance.state.lambdaVersion}`
+  }
+  await clients.lambda.addPermission(paramsPermission).promise()
+  console.log(`Permission successfully added to AWS Lambda for API Gateway`)
 }
 
 /*
@@ -757,8 +780,23 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
     }
   }
 
+  // use the alias if defined for traffic control, or the latest lambda arn
+  const lambdaArn = inputs.alias ? instance.state.aliasArn : instance.state.lambdaArn
+
   if (apiId) {
-    console.log(`API found with ID: ${instance.state.apiId}`)
+    console.log(`API found. Updating API with ID: ${instance.state.apiId}...`)
+    const updateApiParams = {
+      ApiId: apiId,
+      Description: inputs.description || getDefaultDescription(instance),
+      Target: `arn:aws:apigateway:${instance.state.region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`
+    }
+
+    await clients.apig.updateApi(updateApiParams).promise()
+
+    // update permissions for the new lambda version
+    await addPermission(instance, inputs, clients)
+
+    console.log(`API with ID "${instance.state.apiId}" Updated.`)
     return
   }
 
@@ -769,7 +807,7 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
     ProtocolType: 'HTTP',
     // CredentialsArn: inputs.roleArn || instance.state.defaultLambdaRoleArn,
     Description: inputs.description || getDefaultDescription(instance),
-    Target: `arn:aws:apigateway:${instance.state.region}:lambda:path/2015-03-31/functions/${instance.state.lambdaArn}/invocations`,
+    Target: `arn:aws:apigateway:${instance.state.region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`,
     CorsConfiguration: {
       AllowHeaders: ['*'],
       AllowOrigins: ['*']
@@ -784,17 +822,7 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
   instance.state.url = `https://${instance.state.apiId}.execute-api.${instance.state.region}.amazonaws.com`
 
   // Give newly created API permission to call Lambda
-  const apigArn = `arn:aws:execute-api:${instance.state.region}:${instance.state.awsAccountId}:${instance.state.apiId}/*/*`
-  console.log(`Add permission to Lambda enabling API Gateway with this ARN to call it: ${apigArn}`)
-  var paramsPermission = {
-    Action: 'lambda:InvokeFunction',
-    FunctionName: instance.state.lambdaName,
-    Principal: 'apigateway.amazonaws.com',
-    SourceArn: apigArn,
-    StatementId: `API-${instance.state.apiId}`
-  }
-  await clients.lambda.addPermission(paramsPermission).promise()
-  console.log(`Permission successfully added to AWS Lambda for API Gateway`)
+  await addPermission(instance, inputs, clients)
 }
 
 /*
@@ -1219,6 +1247,130 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   return result
 }
 
+/*
+ * Fetches the lambda alias that the user specified
+ *
+ * @param ${instance} instance - the component instance
+ * @param ${object} inputs - the component inputs
+ * @param ${object} clients - the aws clients object
+ */
+const getAlias = async (instance, inputs, clients) => {
+  try {
+    const getAliasParams = {
+      FunctionName: instance.state.lambdaName,
+      Name: inputs.alias
+    }
+
+    const getAliasRes = await clients.lambda.getAlias(getAliasParams).promise()
+    return getAliasRes.AliasArn
+  } catch (e) {
+    if (e.code === 'ResourceNotFoundException') {
+      return null
+    }
+    throw e
+  }
+}
+
+/*
+ * Fetches the function version of the specified destination alias
+ *
+ * @param ${instance} instance - the component instance
+ * @param ${object} inputs - the component inputs
+ * @param ${object} clients - the aws clients object
+ */
+const getDestinationFunctionVersion = async (instance, inputs, clients) => {
+  try {
+    const getAliasParams = {
+      FunctionName: instance.state.lambdaName,
+      Name: inputs.traffic.destination
+    }
+
+    const getAliasRes = await clients.lambda.getAlias(getAliasParams).promise()
+    return getAliasRes.FunctionVersion
+  } catch (e) {
+    if (e.code === 'ResourceNotFoundException') {
+      throw new Error(`The specified traffic destination does not exist`)
+    }
+    throw e
+  }
+}
+
+/*
+ * Gets a clean AWS Routing Config object based on users config in YAML
+ * the user could specify an alias instead of a version as a destination
+ * which would fetch the assosiated version of that alias
+ *
+ * @param ${instance} instance - the component instance
+ * @param ${object} inputs - the component inputs
+ * @param ${object} clients - the aws clients object
+ */
+const getUserDefinedRoutingConfig = async (instance, inputs, clients) => {
+  // return null if user did not define any canary deployments settings
+  if (
+    !inputs.traffic ||
+    !inputs.traffic.percentage ||
+    !inputs.traffic.destination ||
+    instance.stage !== 'prod' // canary deployments are only availabe in prod
+  ) {
+    return null
+  }
+
+  const routingConfig = {
+    AdditionalVersionWeights: {}
+  }
+
+  let additionalVersion
+  if (typeof inputs.traffic.destination === 'number') {
+    // if user specified a number, they're referring to a version
+    additionalVersion = inputs.traffic.destination
+  } else if (typeof inputs.traffic.destination === 'string') {
+    // if user specified a string, they're referring to an alias
+    additionalVersion = await getDestinationFunctionVersion(instance, inputs, clients)
+  } else {
+    throw new Error('Invalid traffic destination')
+  }
+
+  routingConfig.AdditionalVersionWeights[additionalVersion] = inputs.traffic.percentage
+
+  return routingConfig
+}
+
+/*
+ * Creates or updates alias for the deployed lambda version
+ *
+ * @param ${instance} instance - the component instance
+ * @param ${object} inputs - the component inputs
+ * @param ${object} clients - the aws clients object
+ */
+const createOrUpdateAlias = async (instance, inputs, clients) => {
+  console.log(`Verifying alias "${inputs.alias}"...`)
+  instance.state.aliasArn = await getAlias(instance, inputs, clients)
+
+  const aliasParams = {
+    FunctionName: instance.state.lambdaName,
+    Name: inputs.alias,
+    FunctionVersion: instance.state.lambdaVersion
+  }
+
+  const userDefinedRoutingConfig = await getUserDefinedRoutingConfig(instance, inputs, clients)
+
+  if (userDefinedRoutingConfig) {
+    aliasParams.RoutingConfig = userDefinedRoutingConfig
+  }
+
+  if (instance.state.aliasArn) {
+    console.log(`Alias "${inputs.alias}" found. Updating...`)
+    instance.state.aliasArn = (await clients.lambda.updateAlias(aliasParams).promise()).AliasArn
+    console.log(`Alias "${inputs.alias}" updated.`)
+  } else {
+    console.log(`Alias "${inputs.alias}" not found. Creating...`)
+    instance.state.aliasArn = (await clients.lambda.createAlias(aliasParams).promise()).AliasArn
+    console.log(`Alias "${inputs.alias}" created.`)
+  }
+
+  return instance.state.aliasArn
+}
+
 module.exports = {
   generateId,
   sleep,
@@ -1229,6 +1381,7 @@ module.exports = {
   createOrUpdateLambda,
   createOrUpdateApi,
   createOrUpdateDomain,
+  createOrUpdateAlias,
   removeApi,
   removeAllRoles,
   removeLambda,

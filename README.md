@@ -1,4 +1,3 @@
-
 [![Serverless Components](https://s3.amazonaws.com/assets.github.serverless/readme-serverless-components-3.gif)](http://serverless.com)
 
 <br/>
@@ -33,9 +32,8 @@
 Install Serverless Components by specifying the `components` tag when installing the Serverless Framework.
 
 ```
-$ npm install -g serverless@components
+$ npm install -g serverless
 ```
-
 
 ### 2. Login
 
@@ -68,9 +66,10 @@ You should now have a directory that looks something like this:
 |- src
   |- app.js
   |- package.json
-|- serverless.yml  
+|- serverless.yml
 |- .env
 ```
+
 Just like any express app, don't forget to install the express dependencies:
 
 ```
@@ -89,7 +88,6 @@ Your first deployment might take a little while, but subsequent deployment would
 
 <br/>
 
-
 ### 5. Configure
 
 The Express component is a zero configuration component, meaning that it'll work out of the box with no configuration and sane defaults. For your customization, there's a lot of optional configuration that you can specify.
@@ -97,22 +95,25 @@ The Express component is a zero configuration component, meaning that it'll work
 Here's a complete reference of the `serverless.yml` file for the express component:
 
 ```yml
-component: express              # (required) name of the component. In that case, it's express.
-name: express-api               # (required) name of your express component instance.
-org: serverlessinc              # (optional) serverless dashboard org. default is the first org you created during signup.
-app: myApp                      # (optional) serverless dashboard app. default is the same as the name property.
-stage: dev                      # (optional) serverless dashboard stage. default is dev.
+component: express # (required) name of the component. In that case, it's express.
+name: express-api # (required) name of your express component instance.
+org: serverlessinc # (optional) serverless dashboard org. default is the first org you created during signup.
+app: myApp # (optional) serverless dashboard app. default is the same as the name property.
+stage: dev # (optional) serverless dashboard stage. default is dev.
 
 inputs:
-  src: ./src                    # (required) path to the source folder.
-  memory: 512                   # (optional) lambda memory size.
-  timeout: 10                   # (optional) lambda timeout.
-  description: My Express App   # (optional) lambda & api gateway description.
-  roleArn: arn:aws:abc          # (optional) custom role arn.
-  env:                          # (optional) env vars.
-    DEBUG: 'express:*'          #            this express specific env var will print express debug logs.
-  domain: api.serverless.com    # (optional) domain name.
-
+  src: ./src # (required) path to the source folder.
+  memory: 512 # (optional) lambda memory size.
+  timeout: 10 # (optional) lambda timeout.
+  description: My Express App # (optional) lambda & api gateway description.
+  env: # (optional) env vars.
+    DEBUG: 'express:*' #            this express specific env var will print express debug logs.
+  roleArn: arn:aws:abc # (optional) custom role arn.
+  alias: latest # lambda alias to assosiate with the deployment source code
+  traffic: # traffic controls for canary deployments
+    percentage: 0.5 # percentage of traffic to redirect
+    destination: first # lambda alias or version to redirect that traffic percentage to
+  domain: api.serverless.com # (optional) domain name.
 ```
 
 Once you've chosen your configuration, run `serverless deploy` again (or simply just `serverless`) to deploy your changes.
