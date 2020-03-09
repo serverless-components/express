@@ -109,7 +109,7 @@ inputs:
   env:                           # (optional) env vars.
     DEBUG: 'express:*'           #            this express specific env var will print express debug logs.
   roleArn: arn:aws:abc           # (optional) custom role arn.
-  alias: latest                  # lambda alias to assosiate with the deployment source code
+  alias: latest                  # (optional) lambda alias to assosiate with the deployment source code
   traffic:                       # (optional) traffic controls for canary deployments
     percentage: 0.5              #            percentage of traffic to redirect
     destination: first           #            lambda alias or version to redirect that traffic percentage to
