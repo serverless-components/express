@@ -29,7 +29,7 @@
 
 ### 1. Install
 
-Install Serverless Components by specifying the `components` tag when installing the Serverless Framework.
+To get started with component, install the latest version of the Serverless Framework:
 
 ```
 $ npm install -g serverless
@@ -37,7 +37,7 @@ $ npm install -g serverless
 
 ### 2. Login
 
-Unlike most solutions, all component deployments run in the cloud. Therefore, you'll need to login to deploy, share and monitor your components.
+Unlike most solutions, all component deployments run in the cloud for maximum speed and reliability. Therefore, you'll need to login to deploy, share and monitor your components.
 
 ```
 $ serverless login
