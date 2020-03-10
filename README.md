@@ -8,7 +8,7 @@
 
 - [x] **Zero Configuration** - All we need is your code, then just deploy.
 - [x] **Fast Deployments** - Deploy your entire express app in seconds.
-- [x] **Canary Deployments** - Deploy your app gradually 
+- [x] **Canary Deployments** - Deploy your app gradually to a subset of your traffic overtime.
 - [x] **Realtime Cloud Development** - Develop your express app directly on the cloud, with real time logs.
 - [x] **Team Collaboration** - Collaborate with your teamates with shared state and outputs.
 - [x] **Built-in Monitoring** - Monitor your express app right from the Serverless Dashboard.
