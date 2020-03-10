@@ -122,11 +122,9 @@ Once you've chosen your configuration, run `serverless deploy` again (or simply 
 
 <img src="/assets/dev-demo.gif" height="250" align="right">
 
-Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, you could enable dev mode on CLI.
+Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, you could enable dev mode, which allows the CLI to watch for changes in your source directory as you develop, and deploy instantly on save. 
 
-Dev mode allows the CLI to watch for changes in your source directory as you develop and deploy instantly on save. It also enables live logs from your express app so that you can see the results of your tests right away on the CLI as they happen.
-
-To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file.
+Dev mode also enables live logs from your express app so that you can see the results of your tests right away on the CLI as they happen. To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file.
 
 <br/>
 
@@ -134,12 +132,10 @@ To enable dev mode, simply run `serverless dev` from within the directory contai
 
 <img src="/assets/info-demo.gif" height="250" align="right">
 
-Anytime you need to know more about your running express instance, you can simply run `serverless info` to view the most critical info. This is especially helpful when you wanna know the outputs of your instances so that you can reference them in another component. You can also provide the `--debug` flag to view the state of your component instance in case the deployment failed for any reason.
+Anytime you need to know more about your running express instance, you can simply run `serverless info` to view the most critical info. This is especially helpful when you wanna know the outputs of your instances so that you can reference them in another component.
 
-You will also see a dashboard url where you'll be able to view more info about your instance on the Serverless Dashboard.
+You can also provide the `--debug` flag to view the state of your component instance in case the deployment failed for any reason. You will also see a dashboard url where you'll be able to view more info about your instance on the Serverless Dashboard.
 
-<br/>
-<br/>
 <br/>
 
 ### 8. Remove
