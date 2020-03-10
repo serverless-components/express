@@ -126,8 +126,6 @@ Now that you've got your basic express app up and running, it's time to develop 
 
 Dev mode also enables live logs from your express app so that you can see the results of your tests right away on the CLI as they happen. To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file.
 
-<br/>
-
 ### 7. Monitor
 
 <img src="/assets/info-demo.gif" height="250" align="right">
@@ -135,8 +133,6 @@ Dev mode also enables live logs from your express app so that you can see the re
 Anytime you need to know more about your running express instance, you can simply run `serverless info` to view the most critical info. This is especially helpful when you want to know the outputs of your instances so that you can reference them in another component. You will also see a dashboard url where you'll be able to view more info about your instance on the Serverless Dashboard.
 
 It also shows you the status of your instance, when it was last deployed, and how many times it was deployed. To digg even deeper, you can pass the `--debug` flag to view the state of your component instance in case the deployment failed for any reason. 
-
-<br/>
 
 ### 8. Remove
 
