@@ -102,7 +102,7 @@ app: myApp                       # (optional) serverless dashboard app. default 
 stage: dev                       # (optional) serverless dashboard stage. default is dev.
 
 inputs:
-  src: ./src                     # (required) path to the source folder.
+  src: ./src                     # (optional) path to the source folder. default is a hello world app.
   memory: 512                    # (optional) lambda memory size.
   timeout: 10                    # (optional) lambda timeout.
   description: My Express App    # (optional) lambda & api gateway description.
