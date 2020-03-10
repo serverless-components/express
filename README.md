@@ -91,7 +91,7 @@ Your first deployment might take a little while, but subsequent deployment would
 
 ### 5. Configure
 
-The Express component is a zero configuration component, meaning that it'll work out of the box with no configuration and sane defaults. For your customization, there's a lot of optional configuration that you can specify.
+The Express component is a zero configuration component, meaning that it'll work out of the box with no configuration and sane defaults. With that said, there are still a lot of optional configuration that you can specify.
 
 Here's a complete reference of the `serverless.yml` file for the express component:
 
