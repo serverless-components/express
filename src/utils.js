@@ -744,7 +744,7 @@ const createOrUpdateLambda = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const addPermission = async (instance, inputs, clients) => {
-  const lambdaArn = inputs.alias ? instance.state.aliasArn : instance.state.lambdaArn
+  const lambdaArn = instance.state.aliasArn
   const apigArn = `arn:aws:execute-api:${instance.state.region}:${instance.state.awsAccountId}:${instance.state.apiId}/*/*`
   console.log(`Add permission to Lambda enabling API Gateway with this ARN to call it: ${apigArn}`)
   var paramsPermission = {
@@ -781,7 +781,7 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
   }
 
   // use the alias if defined for traffic control, or the latest lambda arn
-  const lambdaArn = inputs.alias ? instance.state.aliasArn : instance.state.lambdaArn
+  const lambdaArn = instance.state.aliasArn
 
   if (apiId) {
     console.log(`API found. Updating API with ID: ${instance.state.apiId}...`)
@@ -1272,17 +1272,17 @@ const getAlias = async (instance, inputs, clients) => {
 }
 
 /*
- * Fetches the function version of the specified destination alias
+ * Fetches the function version of the specified alias
  *
  * @param ${instance} instance - the component instance
  * @param ${object} inputs - the component inputs
  * @param ${object} clients - the aws clients object
  */
-const getDestinationFunctionVersion = async (instance, inputs, clients) => {
+const getAliasFunctionVersion = async (instance, inputs, clients) => {
   try {
     const getAliasParams = {
       FunctionName: instance.state.lambdaName,
-      Name: inputs.traffic.destination
+      Name: 'default'
     }
 
     const getAliasRes = await clients.lambda.getAlias(getAliasParams).promise()
@@ -1296,53 +1296,45 @@ const getDestinationFunctionVersion = async (instance, inputs, clients) => {
 }
 
 /*
- * Gets a clean AWS Routing Config object based on users config in YAML
- * the user could specify an alias instead of a version as a destination
- * which would fetch the assosiated version of that alias
+ * Gets a clean AWS Routing Config object based on the traffic config
  *
  * @param ${instance} instance - the component instance
  * @param ${object} inputs - the component inputs
  * @param ${object} clients - the aws clients object
  */
-const getUserDefinedRoutingConfig = async (instance, inputs, clients) => {
+const getRoutingConfig = async (instance, inputs, clients) => {
   // return null if user did not define any canary deployments settings
-  if (
-    !inputs.traffic ||
-    !inputs.traffic.percentage ||
-    !inputs.traffic.destination ||
-    instance.stage !== 'prod' // canary deployments are only availabe in prod
-  ) {
+  if (inputs.alias !== 'feature') {
     return null
   }
+
+  const additionalVersion = await getAliasFunctionVersion(instance, inputs, clients)
 
   const routingConfig = {
     AdditionalVersionWeights: {}
   }
 
-  let additionalVersion
-  if (typeof inputs.traffic.destination === 'number') {
-    // if user specified a number, they're referring to a version
-    additionalVersion = inputs.traffic.destination
-  } else if (typeof inputs.traffic.destination === 'string') {
-    // if user specified a string, they're referring to an alias
-    additionalVersion = await getDestinationFunctionVersion(instance, inputs, clients)
-  } else {
-    throw new Error('Invalid traffic destination')
-  }
-
-  routingConfig.AdditionalVersionWeights[additionalVersion] = inputs.traffic.percentage
+  // if the user specified 0.2 traffic for this feature codebase/deployment
+  // that means redirect 0.8 to the default alias
+  routingConfig.AdditionalVersionWeights[additionalVersion] = 1 - inputs.traffic
 
   return routingConfig
 }
 
 /*
- * Creates or updates alias for the deployed lambda version
+ * Creates or updates default or feature alias
  *
  * @param ${instance} instance - the component instance
  * @param ${object} inputs - the component inputs
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateAlias = async (instance, inputs, clients) => {
+  inputs.alias = 'default'
+
+  if (inputs.traffic && Number(instance.state.lambdaVersion) > 1) {
+    inputs.alias = 'feature'
+  }
+
   console.log(`Verifying alias "${inputs.alias}"...`)
   instance.state.aliasArn = await getAlias(instance, inputs, clients)
 
@@ -1352,10 +1344,13 @@ const createOrUpdateAlias = async (instance, inputs, clients) => {
     FunctionVersion: instance.state.lambdaVersion
   }
 
-  const userDefinedRoutingConfig = await getUserDefinedRoutingConfig(instance, inputs, clients)
+  const userDefinedRoutingConfig = await getRoutingConfig(instance, inputs, clients)
 
   if (userDefinedRoutingConfig) {
     aliasParams.RoutingConfig = userDefinedRoutingConfig
+    console.log(
+      `Shifting ${String(inputs.traffic * 100)}% of the traffic to the "${inputs.alias}" alias...`
+    )
   }
 
   if (instance.state.aliasArn) {

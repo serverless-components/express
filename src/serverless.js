@@ -45,9 +45,7 @@ class Express extends Component {
 
     await createOrUpdateLambda(this, inputs, clients)
 
-    if (inputs.alias) {
-      await createOrUpdateAlias(this, inputs, clients)
-    }
+    await createOrUpdateAlias(this, inputs, clients)
 
     await createOrUpdateApi(this, inputs, clients)
 
