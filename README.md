@@ -110,11 +110,9 @@ inputs:
   env:                           # (optional) env vars.
     DEBUG: 'express:*'           #            this express specific env var will print express debug logs.
   roleArn: arn:aws:abc           # (optional) custom role arn.
-  alias: latest                  # (optional) lambda alias to assosiate with the deployment source code
-  traffic:                       # (optional) traffic controls for canary deployments
-    percentage: 0.5              #            percentage of traffic to redirect
-    destination: first           #            lambda alias or version to redirect that traffic percentage to
+  traffic: 0.2                   # (optional) traffic percentage to apply to this deployment.
   domain: api.serverless.com     # (optional) domain name.
+  region: us-east-2              # (optional) aws region to deploy to. default is us-east-1.
 ```
 
 Once you've chosen your configuration, run `serverless deploy` again (or simply just `serverless`) to deploy your changes.
