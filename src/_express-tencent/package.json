@@ -1,0 +1,17 @@
+{
+  "name": "@serverless/express",
+  "version": "1.0.0",
+  "main": "./handler.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --fix --cache"
+  },
+  "author": "Serverless, Inc.",
+  "license": "Apache",
+  "dependencies": {
+    "tencent-serverless-http": "^1.0.5"
+  }
+}

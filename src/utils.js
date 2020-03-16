@@ -1,6 +1,20 @@
 const path = require('path')
-const AWS = require('aws-sdk')
 const https = require('https')
+
+const isTencent = process.env.SERVERLESS_PLATFORM_VENDOR === 'tencent'
+
+let AWS = {}
+let tencent = {},
+  tencentUtils = {}
+
+if (isTencent) {
+  tencent = require('tencentcloud-sdk-nodejs')
+  tencentApi = require('qcloudapi-sdk')
+  tencentUtils = require('./tencent-utils')
+} else {
+  AWS = require('aws-sdk')
+}
+
 const agent = new https.Agent({
   keepAlive: true
 })
@@ -30,6 +44,10 @@ const getDefaultDescription = (instance) => {
   return `A resource of the Serverless Express Component for ${instance.org} - ${instance.stage} - ${instance.app} - ${instance.name}`
 }
 
+const getDefaultRegion = () => {
+  return isTencent ? 'ap-shanghai' : 'us-east-1'
+}
+
 /**
  * The ARN of the Lambda IAM Policy used for the default IAM Role
  */
@@ -43,7 +61,25 @@ const getDefaultLambdaRolePolicyArn = () => {
  * @param ${object} credentials - aws credentials object
  * @param ${string} region - aws region
  */
-const getClients = (credentials, region = 'us-east-1') => {
+const getClients = (credentials, region) => {
+  if (!region) {
+    region = getDefaultRegion()
+  }
+
+  if (isTencent) {
+    const creds = new tencent.common.Credential(credentials.SecretId, credentials.SecretKey)
+    const scf = new tencent.scf.v20180416.Client(creds, region)
+    const apig = new tencentApi({
+      SecretId: credentials.SecretId,
+      SecretKey: credentials.SecretKey,
+      serviceType: 'apigateway'
+    })
+    return {
+      scf,
+      apig
+    }
+  }
+
   AWS.config.update({
     httpOptions: {
       agent
@@ -56,7 +92,7 @@ const getClients = (credentials, region = 'us-east-1') => {
   const route53 = new AWS.Route53({ credentials, region })
   const acm = new AWS.ACM({
     credentials,
-    region: 'us-east-1' // ACM must be in us-east-1
+    region: getDefaultDescription() // AWS ACM must be in us-east-1
   })
 
   return {
@@ -100,7 +136,10 @@ const packageExpress = async (instance, inputs) => {
 
   // add shim to the source directory
   console.log(`Installing Express + AWS Lambda handler...`)
-  copySync(path.join(__dirname, '_express'), path.join(sourceDirectory, '_express'))
+  copySync(
+    path.join(__dirname, isTencent ? '_express-tencent' : '_express'),
+    path.join(sourceDirectory, '_express')
+  )
 
   // add sdk to the source directory, add original handler
   console.log(`Installing Serverless Framework SDK...`)
@@ -143,6 +182,11 @@ const getRole = async (clients, roleArn) => {
  */
 const getLambda = async (clients, lambdaName) => {
   try {
+    if (isTencent) {
+      const scf = await tencentUtils.getTencentSCFByName(clients.scf, lambdaName)
+      return scf.FunctionName
+    }
+
     const res = await clients.lambda
       .getFunctionConfiguration({
         FunctionName: lambdaName
@@ -173,24 +217,31 @@ const createLambda = async (instance, inputs, clients) => {
     MemorySize: inputs.memory || 1536,
     Publish: true,
     Role: inputs.roleArn || instance.state.defaultLambdaRoleArn, // Default to automatically created role
-    Runtime: 'nodejs12.x',
+    Runtime: isTencent ? 'Nodejs8.9' : 'nodejs12.x',
     Timeout: inputs.timeout || 29, // Meet the APIG timeout limit, don't exceed it
     Environment: {
       Variables: inputs.env || {}
     }
   }
 
+  params.Code.ZipFile = await readFile(instance.state.zipPath, isTencent ? 'base64' : undefined)
+
   if (inputs.layers) {
     params.Layers = inputs.layers
   }
 
-  params.Code.ZipFile = await readFile(instance.state.zipPath)
-
   try {
-    const res = await clients.lambda.createFunction(params).promise()
-    console.log(`Lambda created with ARN ${res.FunctionArn}`)
-    instance.state.lambdaArn = res.FunctionArn
-    instance.state.lambdaVersion = res.Version
+    if (isTencent) {
+      await tencentUtils.createTencentSCF(clients.scf, params)
+      const scf = await tencentUtils.getTencentSCFByName(clients.scf, params.FunctionName)
+      instance.state.lambdaArn = scf.FunctionName
+      instance.state.lambdaVersion = scf.FunctionVersion
+    } else {
+      const res = await clients.lambda.createFunction(params).promise()
+      console.log(`Lambda created with ARN ${res.FunctionArn}`)
+      instance.state.lambdaArn = res.FunctionArn
+      instance.state.lambdaVersion = res.Version
+    }
   } catch (e) {
     if (
       e.message.includes(`The role defined for the function cannot be assumed by Lambda`) ||
@@ -218,10 +269,24 @@ const updateLambdaCode = async (instance, inputs, clients) => {
     FunctionName: instance.state.lambdaName,
     Publish: true
   }
-  functionCodeParams.ZipFile = await readFile(instance.state.zipPath)
-  const res = await clients.lambda.updateFunctionCode(functionCodeParams).promise()
-  instance.state.lambdaArn = res.FunctionArn
-  instance.state.lambdaVersion = res.Version
+  functionCodeParams.ZipFile = await readFile(
+    instance.state.zipPath,
+    isTencent ? 'base64' : undefined
+  )
+  if (isTencent) {
+    functionCodeParams.Handler = instance.state.handler
+    await tencentUtils.updateTencentSCFCode(clients.scf, functionCodeParams)
+    const { FunctionName, FunctionVersion } = await tencentUtils.getTencentSCFByName(
+      clients.scf,
+      functionCodeParams.FunctionName
+    )
+    instance.state.lambdaArn = FunctionName
+    instance.state.lambdaVersion = FunctionVersion
+  } else {
+    const res = await clients.lambda.updateFunctionCode(functionCodeParams).promise()
+    instance.state.lambdaArn = res.FunctionArn
+    instance.state.lambdaVersion = res.Version
+  }
 }
 
 /*
@@ -239,7 +304,7 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
     Role: inputs.roleArn || instance.state.defaultLambdaRoleArn, // Default to auto-create role
     Timeout: inputs.timeout || 29, // Meet APIG timeout limit, don't exceed it
     Handler: instance.state.handler,
-    Runtime: 'nodejs12.x',
+    Runtime: isTencent ? 'Nodejs8.9' : 'nodejs12.x',
     Environment: {
       Variables: inputs.env || {}
     }
@@ -250,8 +315,13 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
   }
 
   try {
-    const res = await clients.lambda.updateFunctionConfiguration(functionConfigParams).promise()
-    return res.FunctionArn
+    if (isTencent) {
+      await tencentUtils.updateTencentSCFConf(clients.scf, functionConfigParams)
+      return functionConfigParams.FunctionName
+    } else {
+      const res = await clients.lambda.updateFunctionConfiguration(functionConfigParams).promise()
+      return res.FunctionArn
+    }
   } catch (e) {
     if (
       e.message.includes(`The role defined for the function cannot be assumed by Lambda`) ||
@@ -554,6 +624,11 @@ const findOrCreateApiMapping = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateFunctionRole = async (instance, inputs, clients) => {
+  if (isTencent) {
+    // TODO implement tencent CAM role check
+    return
+  }
+
   // Verify existing role, either provided or the previously created default role...
   if (inputs.roleArn) {
     console.log(
@@ -618,6 +693,10 @@ const createOrUpdateFunctionRole = async (instance, inputs, clients) => {
  * Ensure the Meta IAM Role exists
  */
 const createOrUpdateMetaRole = async (instance, inputs, clients, serverlessAccountId) => {
+  if (isTencent) {
+    // TODO not implement for tencent yet
+    return
+  }
   // Create Meta Role for monitoring and more, if option is enabled.  It's enabled by default.
   if (inputs.monitoring || typeof inputs.monitoring === 'undefined') {
     // If meta role is in state, check if it exists already...
@@ -716,7 +795,7 @@ const createOrUpdateLambda = async (instance, inputs, clients) => {
   // Verify existing lambda
   if (instance.state.lambdaArn && instance.state.lambdaName) {
     console.log(
-      `Verifying the AWS Lambda with the ARN: ${instance.state.lambdaArn} and Name: ${instance.state.lambdaName} found in state exists...`
+      `Verifying the cloud function/lambda with the ID(Arn): ${instance.state.lambdaArn} and Name: ${instance.state.lambdaName} found in state exists...`
     )
     instance.state.lambdaArn = await getLambda(clients, instance.state.lambdaName)
   }
@@ -724,16 +803,16 @@ const createOrUpdateLambda = async (instance, inputs, clients) => {
   if (!instance.state.lambdaArn) {
     instance.state.lambdaName = `${instance.state.name}-function` // WARNING: DO NOT ADJUST THIS, OR EVERYONE WILL DEPLOY NEW FUNCTIONS, RATHER THAN UPDATE THEIR OLD ONES.  ADJUST THIS ONLY WHEN WE'RE READY TO DO A BREAKING CHANGE.
     console.log(
-      `No AWS Lambda function found.  Creating one with the name: ${instance.state.lambdaName}`
+      `No cloud function/lamda found.  Creating one with the name: ${instance.state.lambdaName}`
     )
     return createLambda(instance, inputs, clients)
   }
 
-  console.log(`AWS Lambda function found.  Updating it's configuration and code...`)
+  console.log(`Cloud Function/Lambda function found.  Updating it's configuration and code...`)
   await updateLambdaConfig(instance, inputs, clients)
   await updateLambdaCode(instance, inputs, clients)
-  console.log(`AWS Lambda version "${instance.state.lambdaVersion}" published`)
-  console.log(`AWS Lambda function updated with ARN: ${instance.state.lambdaArn}`)
+  console.log(`Cloud Function/Lambda version "${instance.state.lambdaVersion}" published`)
+  console.log(`Cloud Function/Lambda function updated with ARN: ${instance.state.lambdaArn}`)
 }
 
 /*
@@ -758,6 +837,52 @@ const addPermission = async (instance, inputs, clients) => {
   console.log(`Permission successfully added to AWS Lambda for API Gateway`)
 }
 
+const createOrUpdateTencentApi = async (instance, inputs, clients) => {
+  const apigwParam = {
+    serviceName: instance.name.replace(/-/g, '_'),
+    description: inputs.description || getDefaultDescription(instance),
+    serviceId: instance.state.apiGatewayServiceId,
+    region: instance.state.region,
+    protocols: ['http'],
+    environment:
+      inputs.apigatewayConf && inputs.apigatewayConf.environment
+        ? inputs.apigatewayConf.environment
+        : 'release',
+    endpoints: [
+      {
+        path: '/',
+        method: 'ANY',
+        function: {
+          isIntegratedResponse: true,
+          functionName: instance.state.lambdaArn,
+          functionNamespace: inputs.namespace
+        }
+      }
+    ],
+    customDomain: inputs.apigatewayConf ? inputs.apigatewayConf.customDomain : null
+  }
+  if (inputs.apigatewayConf && inputs.apigatewayConf.usagePlan) {
+    apigwParam.endpoints[0].usagePlan = inputs.apigatewayConf.usagePlan
+  }
+  if (inputs.apigatewayConf && inputs.apigatewayConf.auth) {
+    apigwParam.endpoints[0].auth = inputs.apigatewayConf.auth
+  }
+
+  apigwParam.fromClientRemark = inputs.fromClientRemark || 'tencent-express'
+  const tencentApiGatewayOutputs = await tencentUtils.createOrUpdateApi(
+    clients.apig,
+    instance,
+    apigwParam
+  )
+
+  instance.state.apiGatewayServiceId = tencentApiGatewayOutputs.serviceId
+  instance.state.url = `http://${tencentApiGatewayOutputs.subDomain}/${tencentApiGatewayOutputs.environment}/`
+
+  if (tencentApiGatewayOutputs.customDomains) {
+    instance.state.domain = tencentApiGatewayOutputs.customDomains
+  }
+}
+
 /*
  * Creates an API on aws if it doesn't already exists
  *
@@ -766,6 +891,9 @@ const addPermission = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateApi = async (instance, inputs, clients) => {
+  if (isTencent) {
+    return await createOrUpdateTencentApi(instance, inputs, clients)
+  }
   let apiId
   if (instance.state.apiId) {
     console.log(`Checking for existing API with ID: ${instance.state.apiId}`)
@@ -833,6 +961,10 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateDomain = async (instance, inputs, clients) => {
+  if (isTencent) {
+    // domain for tencent is handled in createOrUpdateTencentApi
+    return
+  }
   instance.state.domain = inputs.domain
 
   instance.state.domainHostedZoneId = await getDomainHostedZoneId(instance, inputs, clients)
@@ -864,6 +996,9 @@ const createOrUpdateDomain = async (instance, inputs, clients) => {
  * @param ${object} config - the component config
  */
 const removeAllRoles = async (instance, clients) => {
+  if (isTencent) {
+    return
+  }
   // Delete Function Role
   if (instance.state.defaultLambdaRoleArn) {
     console.log(`Deleting the default Function Role...`)
@@ -929,6 +1064,10 @@ const removeLambda = async (instance, clients) => {
 
   try {
     const params = { FunctionName: instance.state.lambdaName }
+    if (isTencent) {
+      // TODO
+      return
+    }
     await clients.lambda.deleteFunction(params).promise()
   } catch (error) {
     if (error.code !== 'ResourceNotFoundException') {
@@ -969,6 +1108,10 @@ const removeApi = async (instance, clients) => {
   console.log(`Removing API with ID ${instance.state.apiId}`)
 
   try {
+    if (isTencent) {
+      // TODO
+      return
+    }
     await clients.apig.deleteApi({ ApiId: instance.state.apiId }).promise()
   } catch (e) {
     console.log(e)
@@ -989,6 +1132,10 @@ const removeDomainFromApig = async (instance, clients) => {
     DomainName: instance.state.domain
   }
 
+  if (isTencent) {
+    // TODO
+    return
+  }
   await clients.apig.deleteDomainName(params).promise()
 }
 
@@ -1329,6 +1476,10 @@ const getRoutingConfig = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateAlias = async (instance, inputs, clients) => {
+  if (isTencent) {
+    // TODO not support for tencent now
+    return
+  }
   inputs.alias = 'default'
 
   if (inputs.traffic && Number(instance.state.lambdaVersion) > 1) {
@@ -1381,5 +1532,6 @@ module.exports = {
   removeAllRoles,
   removeLambda,
   removeDomain,
-  getMetrics
+  getMetrics,
+  getDefaultRegion
 }

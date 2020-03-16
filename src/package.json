@@ -13,6 +13,14 @@
   "license": "Apache",
   "dependencies": {
     "fs-extra": "^8.1.0",
-    "moment": "^2.24.0"
+    "moment": "^2.24.0",
+    "lodash": "^4.17.15",
+    "joi": "^14.3.1",
+    "qcloudapi-sdk": "^0.2.1",
+    "tencentcloud-sdk-nodejs": "3.0.121",
+    "serverless-platform-client-tencent": "latest",
+    "adm-zip": "^0.4.13",
+    "convert-hrtime": "^3.0.0",
+    "download": "^7.1.0"
   }
 }

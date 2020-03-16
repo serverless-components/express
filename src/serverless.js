@@ -14,7 +14,8 @@ const {
   removeAllRoles,
   removeLambda,
   removeDomain,
-  getMetrics
+  getMetrics,
+  getDefaultRegion
 } = require('./utils')
 
 class Express extends Component {
@@ -32,9 +33,14 @@ class Express extends Component {
 
     // Set app name & region or use previously set name
     this.state.name = this.state.name || `${this.name}-${generateId()}`
-    this.state.region = inputs.region || 'us-east-1'
+    this.state.region = inputs.region || getDefaultRegion()
 
-    const clients = getClients(this.credentials.aws, inputs.region)
+    const clients = getClients(
+      process.env.SERVERLESS_PLATFORM_VENDOR === 'tencent'
+        ? this.credentials.tencent
+        : this.credentials.aws,
+      inputs.region
+    )
 
     await packageExpress(this, inputs)
 
