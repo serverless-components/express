@@ -752,10 +752,16 @@ const addPermission = async (instance, inputs, clients) => {
     FunctionName: lambdaArn,
     Principal: 'apigateway.amazonaws.com',
     SourceArn: apigArn,
-    StatementId: `API-${instance.state.apiId}-${instance.state.lambdaVersion}`
+    StatementId: `API-${instance.state.apiId}-${inputs.alias}`
   }
-  await clients.lambda.addPermission(paramsPermission).promise()
-  console.log(`Permission successfully added to AWS Lambda for API Gateway`)
+  try {
+    await clients.lambda.addPermission(paramsPermission).promise()
+    console.log(`Permission successfully added to AWS Lambda for API Gateway`)
+  } catch (e) {
+    if (!e.message.includes('already exists')) {
+      throw e
+    }
+  }
 }
 
 /*
@@ -887,7 +893,7 @@ const removeAllRoles = async (instance, clients) => {
   }
 
   // Delete Meta Role
-  if (instance.state.metaRoleName) {
+  if (instance.state.metaRoleName && instance.state.metaRolePolicyArn) {
     console.log(`Deleting the Meta Role...`)
     try {
       await clients.iam
