@@ -1,7 +1,7 @@
 const path = require('path')
 const AWS = require('aws-sdk')
 const { ServerlessSDK } = require('@serverless/platform-client')
-const dotenv = require('dotenv').config({ path: path.resolve(__dirname, '.env') }).parsed
+const dotenv = require('dotenv').config({ path: path.resolve(__dirname, '.env') }).parsed || {}
 
 /*
  * Pauses execution for an X period of time
