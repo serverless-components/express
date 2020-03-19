@@ -2,8 +2,6 @@ const path = require('path')
 const axios = require('axios')
 const { sleep, getCredentials, getServerlessSdk, getLambda } = require('./utils')
 
-// triggering tests
-
 // set enough timeout for deployment to finish
 jest.setTimeout(30000)
 
