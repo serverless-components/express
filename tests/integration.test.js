@@ -103,7 +103,7 @@ it('should disable traffic shifting', async () => {
   const instance = await sdk.deploy(instanceYaml, credentials)
 
   // give aws some time...
-  await sleep(7000)
+  await sleep(10000)
 
   // make 10 requests and make sure old responses never appeared
   let requests = 0
