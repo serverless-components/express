@@ -1,6 +1,6 @@
 const path = require('path')
 const axios = require('axios')
-const { sleep, getCredentials, getServerlessSdk, getLambda } = require('./utils')
+const { sleep, generateId, getCredentials, getServerlessSdk, getLambda } = require('./utils')
 
 // set enough timeout for deployment to finish
 jest.setTimeout(30000)
@@ -9,8 +9,8 @@ jest.setTimeout(30000)
 const instanceYaml = {
   org: 'serverlessinc',
   app: 'myApp',
-  component: 'express',
-  name: 'express-integration-tests',
+  component: 'express@dev',
+  name: `express-integration-tests-${generateId()}`,
   stage: 'dev',
   inputs: {} // should deploy with zero inputs
 }
