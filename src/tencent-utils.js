@@ -134,6 +134,21 @@ const updateTencentSCFCode = async (client, params) => {
   })
 }
 
+const deleteTencentSCF = async (client, params) => {
+  return new Promise((resolve, reject) => {
+    const req = new tencent.scf.v20180416.Models.DeleteFunctionRequest()
+    req.FunctionName = params.FunctionName
+
+    client.DeleteFunction(req, (err, res) => {
+      if (err) {
+        console.error(err)
+        return reject(err)
+      }
+      return resolve(res)
+    })
+  })
+}
+
 const createOrUpdateApi = async (apig, instance, inputs) => {
   console.log('Deploying API', instance)
 
@@ -704,10 +719,133 @@ const createOrUpdateApi = async (apig, instance, inputs) => {
   return outputs
 }
 
+const removeApi = async (apig, instance) => {
+  // login
+  console.log('Removing api')
+
+  if (!instance.state.apis) {
+    console.log(`Aborting removal. function name not found in state.`)
+    return
+  }
+
+  const state = instance.state
+  const region = state.region
+  const apisLen = state.apis.length
+
+  // get service all api list
+  const oldApis = await DescribeApisStatus({
+    apig: apig,
+    Region: region,
+    serviceId: state.service.value,
+    // api max response 100 row
+    limit: 100
+  })
+
+  for (let i = 0; i < apisLen; i++) {
+    const endpoint = state.apis[i]
+    if (!endpoint.apiId) {
+      continue
+    }
+    const oldEndpoint = _.find(oldApis.apiIdStatusSet, (item) => {
+      if (endpoint.apiId.value == item.apiId) {
+        return item
+      }
+    })
+
+    if (_.isEmpty(oldEndpoint)) {
+      console.log(`Api resource dont't exixts ID ${endpoint.apiId.value}.`)
+      continue
+    }
+
+    if (endpoint.usagePlanId) {
+      if (!_.isEmpty(endpoint.secretIds.value)) {
+        // await UnBindSecretIds({ apig, Region: region,
+        //           secretIds: endpoint.secretIds.value,
+        //           usagePlanId: endpoint.usagePlanId.value })
+        await UnBindSecretIds({
+          apig: apig,
+          Region: region,
+          secretIds: endpoint.secretIds.value,
+          usagePlanId: endpoint.usagePlanId.value
+        })
+        console.log(`Unbinding secret key to usage plan with ID ${endpoint.usagePlanId.value}.`)
+      }
+
+      await UnBindEnvironment({
+        apig: apig,
+        Region: region,
+        serviceId: state.service.value,
+        usagePlanIds: [endpoint.usagePlanId.value],
+        environment: state.environment,
+        bindType: bindType,
+        apiIds: [endpoint.apiId.value]
+      })
+      console.log(
+        `Unbinding usage plan with ID ${endpoint.usagePlanId.value} to service with ID ${state.service.value}.`
+      )
+
+      if (endpoint.usagePlanId.created == true) {
+        console.log(`Removing any previously deployed usage plan ids ${endpoint.usagePlanId.value}`)
+        await DeleteUsagePlan({ apig, Region: region, usagePlanId: endpoint.usagePlanId.value })
+      }
+    }
+
+    if (endpoint.secretIds && endpoint.secretIds.created == true) {
+      endpoint.secretIds.value.map(async (secretId) => {
+        await DisableApiKey({ apig, Region: region, secretId })
+        await DeleteApiKey({ apig, Region: region, secretId })
+        console.log(`Removing any previously deployed secret key. ${secretId}`)
+      })
+    }
+    if (endpoint.apiId && endpoint.apiId.created == true) {
+      await DeleteApi({
+        apig: apig,
+        Region: region,
+        apiId: endpoint.apiId.value,
+        serviceId: state.service.value
+      })
+      console.log(`Removing any previously deployed API. ${endpoint.apiId.value}`)
+    }
+  }
+
+  // unbind all exist domain
+  const { customDomains = [] } = instance.state
+  for (let i = 0; i < customDomains.length; i++) {
+    const domainItem = customDomains[i]
+    await UnBindSubDomain({
+      apig: apig,
+      Region: region,
+      serviceId: state.service.value,
+      subDomain: domainItem.domain
+    })
+    console.log(`Removing custom domain ${domainItem.domain}`)
+  }
+
+  await UnReleaseService({
+    apig: apig,
+    Region: region,
+    serviceId: state.service.value,
+    environmentName: state.environment,
+    unReleaseDesc: 'Serverless API-Gateway component offline'
+  })
+
+  if (state.service.created == true) {
+    console.log(`Removing any previously deployed service. ${state.service.value}`)
+    await DeleteService({
+      apig: apig,
+      serviceId: state.service.value,
+      Region: region
+    })
+  }
+  instance.state = {}
+}
+
 module.exports = {
   getTencentSCFByName,
   createTencentSCF,
   updateTencentSCFConf,
   updateTencentSCFCode,
-  createOrUpdateApi
+  deleteTencentSCF,
+  createOrUpdateApi,
+  removeApi
 }

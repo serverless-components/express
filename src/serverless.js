@@ -76,7 +76,12 @@ class Express extends Component {
    * Remove
    */
   async remove() {
-    const clients = getClients(this.credentials.aws, this.state.region)
+    const clients = getClients(
+      process.env.SERVERLESS_PLATFORM_VENDOR === 'tencent'
+        ? this.credentials.tencent
+        : this.credentials.aws,
+      this.state.region
+    )
 
     await removeAllRoles(this, clients)
     await removeLambda(this, clients)

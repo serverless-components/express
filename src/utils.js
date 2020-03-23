@@ -1065,8 +1065,7 @@ const removeLambda = async (instance, clients) => {
   try {
     const params = { FunctionName: instance.state.lambdaName }
     if (isTencent) {
-      // TODO
-      return
+      return await tencentUtils.deleteTencentSCF(clients.scf, params)
     }
     await clients.lambda.deleteFunction(params).promise()
   } catch (error) {
@@ -1101,17 +1100,16 @@ const removeApiMapping = async (instance, clients) => {
  * @param ${object} config - the component config
  */
 const removeApi = async (instance, clients) => {
-  if (!instance.state.apiId) {
-    return
-  }
-
-  console.log(`Removing API with ID ${instance.state.apiId}`)
-
   try {
     if (isTencent) {
-      // TODO
+      console.log(`Removing API with ID ${instance.state.apiGatewayServiceId}`)
+      return await tencentUtils.removeApi(clients.apig, instance)
+    }
+
+    if (!instance.state.apiId) {
       return
     }
+    console.log(`Removing API with ID ${instance.state.apiId}`)
     await clients.apig.deleteApi({ ApiId: instance.state.apiId }).promise()
   } catch (e) {
     console.log(e)
@@ -1180,6 +1178,10 @@ const removeDnsRecordsForApigDomain = async (instance, clients) => {
  * Remove a custom domain
  */
 const removeDomain = async (instance, clients) => {
+  if (isTencent) {
+    // TODO
+    return
+  }
   await removeApiMapping(instance, clients)
   await removeDomainFromApig(instance, clients)
   await removeDnsRecordsForApigDomain(instance, clients)
