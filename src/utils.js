@@ -45,7 +45,7 @@ const getDefaultDescription = (instance) => {
 }
 
 const getDefaultRegion = () => {
-  return isTencent ? 'ap-shanghai' : 'us-east-1'
+  return isTencent ? 'ap-guangzhou' : 'us-east-1'
 }
 
 /**
@@ -67,11 +67,16 @@ const getClients = (credentials, region) => {
   }
 
   if (isTencent) {
-    const creds = new tencent.common.Credential(credentials.SecretId, credentials.SecretKey)
+    const creds = new tencent.common.Credential(
+      credentials.SecretId,
+      credentials.SecretKey,
+      credentials.Token
+    )
     const scf = new tencent.scf.v20180416.Client(creds, region)
     const apig = new tencentApi({
       SecretId: credentials.SecretId,
       SecretKey: credentials.SecretKey,
+      Token: credentials.Token,
       serviceType: 'apigateway'
     })
     return {
@@ -217,7 +222,7 @@ const createLambda = async (instance, inputs, clients) => {
     MemorySize: inputs.memory || 1536,
     Publish: true,
     Role: inputs.roleArn || instance.state.defaultLambdaRoleArn, // Default to automatically created role
-    Runtime: isTencent ? 'Nodejs8.9' : 'nodejs12.x',
+    Runtime: isTencent ? 'Nodejs10.15' : 'nodejs12.x',
     Timeout: inputs.timeout || 29, // Meet the APIG timeout limit, don't exceed it
     Environment: {
       Variables: inputs.env || {}
@@ -257,6 +262,16 @@ const createLambda = async (instance, inputs, clients) => {
   }
 }
 
+const ensureTencentSCFInRightState = async (client, functionName) => {
+  if (isTencent) {
+    let scfInfo = await tencentUtils.getTencentSCFByName(client, functionName)
+    while (scfInfo.Status !== 'Active') {
+      scfInfo = await tencentUtils.getTencentSCFByName(client, functionName)
+    }
+  }
+  return
+}
+
 /*
  * Updates lambda code on aws according to the provided source
  *
@@ -275,6 +290,7 @@ const updateLambdaCode = async (instance, inputs, clients) => {
   )
   if (isTencent) {
     functionCodeParams.Handler = instance.state.handler
+    await ensureTencentSCFInRightState(clients.scf, functionCodeParams.FunctionName)
     await tencentUtils.updateTencentSCFCode(clients.scf, functionCodeParams)
     const { FunctionName, FunctionVersion } = await tencentUtils.getTencentSCFByName(
       clients.scf,
@@ -304,7 +320,7 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
     Role: inputs.roleArn || instance.state.defaultLambdaRoleArn, // Default to auto-create role
     Timeout: inputs.timeout || 29, // Meet APIG timeout limit, don't exceed it
     Handler: instance.state.handler,
-    Runtime: isTencent ? 'Nodejs8.9' : 'nodejs12.x',
+    Runtime: isTencent ? 'Nodejs10.15' : 'nodejs12.x',
     Environment: {
       Variables: inputs.env || {}
     }
@@ -316,6 +332,7 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
 
   try {
     if (isTencent) {
+      await ensureTencentSCFInRightState(clients.scf, functionConfigParams.FunctionName)
       await tencentUtils.updateTencentSCFConf(clients.scf, functionConfigParams)
       return functionConfigParams.FunctionName
     } else {

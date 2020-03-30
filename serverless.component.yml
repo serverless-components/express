@@ -1,8 +1,8 @@
-name: express
+name: express-debug
 version: 0.0.0-dev
-author: eahefnawy
+author: kehuang
 org: serverlessinc
-description: Deploys a serverless Express.js application onto AWS Lambda and AWS HTTP API.
+description: Deploys a serverless Express.js application onto tencent SCF and HTTP API gateway.
 keywords: aws, serverless, express
 repo: https://github.com/serverless-components/express
 readme: ''

@@ -49,11 +49,17 @@ class Express extends Component {
       createOrUpdateMetaRole(this, inputs, clients, this.accountId)
     ])
 
-    await createOrUpdateLambda(this, inputs, clients)
-
-    await createOrUpdateAlias(this, inputs, clients)
-
-    await createOrUpdateApi(this, inputs, clients)
+    if (this.state.lambdaArn) {
+      await Promise.all([
+        createOrUpdateLambda(this, inputs, clients),
+        createOrUpdateAlias(this, inputs, clients),
+        createOrUpdateApi(this, inputs, clients)
+      ])
+    } else {
+      await createOrUpdateLambda(this, inputs, clients)
+      await createOrUpdateAlias(this, inputs, clients)
+      await createOrUpdateApi(this, inputs, clients)
+    }
 
     if (inputs.domain) {
       await createOrUpdateDomain(this, inputs, clients)
