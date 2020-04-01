@@ -2,7 +2,7 @@
 
 <br/>
 
-**Serverless Express Component** ⎯⎯⎯ Rapidly deploy express applications on serverless infrastructure with zero configuration, powered by [Serverless Components](https://github.com/serverless/components/).
+**Serverless Express Component** ⎯⎯⎯ Rapidly deploy express applications on serverless infrastructure (AWS HTTP API and AWS Lambda) with zero configuration, powered by [Serverless Components](https://github.com/serverless/components/).
 
 <br/>
 
@@ -133,3 +133,11 @@ It also shows you the status of your instance, when it was last deployed, and ho
 If you wanna tear down your entire express infrastructure that was created during deployment, just run `serverless remove` in the directory containing the `serverless.yml` file. The express component will then use all the data it needs from the built-in state storage system to delete only the relavent cloud resources that it created.
 
 Just like deployment, you could also specify a `--debug` flag for realtime logs from the express component running in the cloud.
+
+## Architecture
+
+- [x] **AWS HTTP API** - The API Gateway which receives all requests and proxies them to AWS Lambda.
+- [x] **AWS Lambda** - A single AWS Lambda function runs your Express.js application.
+- [x] **AWS IAM** - An AWS IAM role is automatically created, if you do not provide a custom one.
+- [x] **AWS Route53** - If you enter a `domain` input and the domain already exists on your AWS account, a Route53 hosted zone will be created and integrated into your API Gateway.
+- [x] **AWS ACM SSL Certificate** - If you enter a `domain` input and the domain already exists on your AWS account, a free AWS ACM SSL certificate will be created.
