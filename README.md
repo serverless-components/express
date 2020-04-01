@@ -6,7 +6,7 @@
 
 <br/>
 
-- [x] **Never Pay For idle** - Free at idle.  Averages $0.0000002-$0.0000009 per HTTP request depending on settings and compute time.
+- [x] **Never Pay For Idle** - Free at idle.  Averages $0.0000002-$0.0000009 per HTTP request depending on settings and compute time.
 - [x] **Zero Configuration** - All we need is your code, then just deploy.
 - [x] **Fast Deployments** - Deploy your entire express app in seconds.
 - [x] **Canary Deployments** - Deploy your app gradually to a subset of your traffic overtime.
