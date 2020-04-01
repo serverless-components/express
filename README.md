@@ -46,6 +46,12 @@ $ serverless create --template-url https://github.com/serverless/components/tree
 $ cd express
 ```
 
+Just like any express app, don't forget to install the express dependencies:
+
+```
+$ npm install
+```
+
 Then, create a new `.env` file in the root of the `express` directory right next to `serverless.yml`, and add your AWS access keys:
 
 ```
@@ -57,19 +63,11 @@ AWS_SECRET_ACCESS_KEY=XXX
 You should now have a directory that looks something like this:
 
 ```
-|- src
-  |- app.js
-  |- package.json
+|- app.js
+|- node_modules
+|- package.json
 |- serverless.yml
 |- .env
-```
-
-Just like any express app, don't forget to install the express dependencies inside the `src` directory:
-
-```
-$ cd src
-$ npm install
-$ cd ..
 ```
 
 ### 3. Deploy
@@ -98,7 +96,7 @@ app: myApp                       # (optional) serverless dashboard app. default 
 stage: dev                       # (optional) serverless dashboard stage. default is dev.
 
 inputs:
-  src: ./src                     # (optional) path to the source folder. default is a hello world app.
+  src: ./                        # (optional) path to the source folder. default is a hello world app.
   memory: 512                    # (optional) lambda memory size.
   timeout: 10                    # (optional) lambda timeout.
   description: My Express App    # (optional) lambda & api gateway description.
@@ -126,7 +124,7 @@ Dev mode also enables live logs from your express app so that you can see the re
 
 Anytime you need to know more about your running express instance, you can run `serverless info` to view the most critical info. This is especially helpful when you want to know the outputs of your instances so that you can reference them in another instance. You will also see a url where you'll be able to view more info about your instance on the Serverless Dashboard.
 
-It also shows you the status of your instance, when it was last deployed, and how many times it was deployed. To digg even deeper, you can pass the `--debug` flag to view the state of your component instance in case the deployment failed for any reason. 
+It also shows you the status of your instance, when it was last deployed, and how many times it was deployed. To dig even deeper, you can pass the `--debug` flag to view the state of your component instance in case the deployment failed for any reason. 
 
 ### 7. Remove
 
