@@ -74,9 +74,11 @@ $ cd ..
 
 <img src="/assets/deploy-debug-demo.gif" height="250" align="right">
 
-Once you have the directory set up, you're now ready to deploy. Just run `serverless deploy` from within the directory containing the `serverless.yml` file.
+Once you have the directory set up, you're now ready to deploy. Just run `serverless deploy` from within the directory containing the `serverless.yml` file. Your first deployment might take a little while, but subsequent deployment would just take few seconds. After deployment is done, you should see your express app's URL. Visit that URL to see your new app live.
 
-Your first deployment might take a little while, but subsequent deployment would just take few seconds. For more information on what's going on during deployment, you could specify the `serverless deploy --debug` flag, which would view deployment logs in realtime.
+**Note:** If you see an `internal server error`, it probably means you did not run `npm install` after `serverless create`. See above for more info.
+
+For more information on what's going on during deployment, you could specify the `serverless deploy --debug` flag, which would view deployment logs in realtime.
 
 <br/>
 
