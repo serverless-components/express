@@ -6,12 +6,12 @@
 
 <br/>
 
-- [x] **Never Pay For Idle** - No HTTP requests, no cost. Averages $0.0000002-$0.0000009 per request (depending on settings and compute time).
+- [x] **Never Pay For Idle** - No HTTP requests, no cost. Averages $0.0000002-$0.0000009 per request.
 - [x] **Zero Configuration** - All we need is your code, then just deploy.
 - [x] **Fast Deployments** - Deploy your entire express app in seconds.
 - [x] **Realtime Logging** - Develop your express app directly on the cloud, with real time logs via "dev mode".
 - [x] **Canary Deployments** - Deploy your app gradually to a subset of your traffic overtime.
-- [x] **Easy Custom Domain + SSL** - Deploy your entire express app in seconds.
+- [x] **Custom Domain + SSL** - Auto-configures a custom domain w/ a free AWS ACM SSL certificate.
 - [x] **Team Collaboration** - Collaborate with your teamates with shared state and outputs.
 - [x] **Built-in Monitoring** - Monitor your express app right from the Serverless Dashboard.
 
