@@ -27,8 +27,8 @@
 6. [**Monitor**](#6-monitor)
 7. [**Remove**](#7-remove)
 
-   [**Architecture**](#Architecture)
-   [**Guides**](#Guides)
+* [**Architecture**](#Architecture)
+* [**Guides**](#Guides)
 
 &nbsp;
 
