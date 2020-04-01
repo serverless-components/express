@@ -6,10 +6,12 @@
 
 <br/>
 
+- [x] **Never Pay For idle** - Free at idle.  Averages $0.0000002-$0.0000009 per HTTP request depending on settings and compute time.
 - [x] **Zero Configuration** - All we need is your code, then just deploy.
 - [x] **Fast Deployments** - Deploy your entire express app in seconds.
 - [x] **Canary Deployments** - Deploy your app gradually to a subset of your traffic overtime.
 - [x] **Realtime Cloud Development** - Develop your express app directly on the cloud, with real time logs.
+- [x] **Easy Custom Domain + SSL** - Deploy your entire express app in seconds.
 - [x] **Team Collaboration** - Collaborate with your teamates with shared state and outputs.
 - [x] **Built-in Monitoring** - Monitor your express app right from the Serverless Dashboard.
 
@@ -104,7 +106,7 @@ inputs:
     DEBUG: 'express:*'           #            this express specific env var will print express debug logs.
   roleArn: arn:aws:abc           # (optional) custom role arn.
   traffic: 0.2                   # (optional) traffic percentage to apply to this deployment.
-  domain: api.serverless.com     # (optional) domain name.
+  domain: api.serverless.com     # (optional) if the domain was registered via AWS Route53 on the account you are deploying to, it will automatically be set-up with your Express app's API Gateway, as well as a free AWS ACM SSL Cert.
   region: us-east-2              # (optional) aws region to deploy to. default is us-east-1.
 ```
 
