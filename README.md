@@ -19,6 +19,8 @@
 
 <img src="/assets/deploy-demo.gif" height="250" align="right">
 
+Get Started:
+
 1. [**Install**](#1-install)
 2. [**Create**](#2-create)
 3. [**Deploy**](#3-deploy)
@@ -26,6 +28,8 @@
 5. [**Dev Mode**](#5-dev-mode)
 6. [**Monitor**](#6-monitor)
 7. [**Remove**](#7-remove)
+
+Extra:
 
 * [**Architecture**](#Architecture)
 * [**Guides**](#Guides)
