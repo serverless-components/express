@@ -138,8 +138,67 @@ Just like deployment, you could also specify a `--debug` flag for realtime logs 
 
 ## Architecture
 
+This is the AWS serverless infrastructure that is created by this Component:
+
 - [x] **AWS HTTP API** - The API Gateway which receives all requests and proxies them to AWS Lambda.
 - [x] **AWS Lambda** - A single AWS Lambda function runs your Express.js application.
 - [x] **AWS IAM** - An AWS IAM role is automatically created, if you do not provide a custom one.
 - [x] **AWS Route53** - If you enter a `domain` input and the domain already exists on your AWS account, a Route53 hosted zone will be created and integrated into your API Gateway.
 - [x] **AWS ACM SSL Certificate** - If you enter a `domain` input and the domain already exists on your AWS account, a free AWS ACM SSL certificate will be created.
+
+# Guides
+
+### Setting Up A Custom Domain & SSL Certificate
+
+The Express Component can easily set up a custom domain and free SSL certificate for you.
+
+First, register your custom domain via Route53 on the AWS Acccount you are deploying to.
+
+Next, add the domain to the `domain` in `inputs` in `serverless.yml`, like this:
+
+```yaml
+
+inputs:
+  src: ./
+  domain: serverlessexpress.com
+
+```
+
+You can also use a subdomain:
+
+```yaml
+
+inputs:
+  src: ./
+  domain: express.component-demos.com
+
+```
+
+Run `serverless deploy`.
+
+Keep in mind, it will take AWS CloudFront and AWS Route53 and DNS up to 24 hours to propagate these changes and make your custom domain globally accessible.  However, with recent AWS CloudFront speed increases, your domain should be accessible within ~20 minutes.
+
+
+### Canary Deployments
+
+The Express Components knows how to do Canary deployments out-of-the-box.  This enables you to push out a version of your app (containing code changes you deem risky) which is only served to a percentage of traffic that you specificy (0-99%).  This allows you to test big changes with little risk.
+
+To perform a canary deployment, make your code changes.  Next, set a traffic weighting in your `serverless.yml` `inputs`:
+
+```yaml
+
+inputs:
+  src: ./
+  traffic: 0.5 # 50%
+
+```
+
+Run `serverless deploy`.  After deplyoment is complete, 50% of your requests will be randomly handled by the new experimental code.
+
+You can slowly increment the percentage over time, just continue to re-deploy it.
+
+When you want to serve all traffic with the new code, simply remove `traffic` from `inputs` and re-deploy.
+
+If you want to undo these changes, make sure your old code is in your `src` `input`, remove `traffic` from `inputs` and re-deploy. 
+ 
+ 
