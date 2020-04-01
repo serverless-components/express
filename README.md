@@ -62,7 +62,7 @@ You should now have a directory that looks something like this:
 |- .env
 ```
 
-Just like any express app, don't forget to install the express dependencies:
+Just like any express app, don't forget to install the express dependencies inside the `src` directory:
 
 ```
 $ cd src
