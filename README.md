@@ -23,7 +23,7 @@
 2. [**Create**](#2-create)
 3. [**Deploy**](#3-deploy)
 4. [**Configure**](#4-configure)
-5. [**Develop**](#5-develop)
+5. [**Dev Mode**](#5-dev-mode)
 6. [**Monitor**](#6-monitor)
 7. [**Remove**](#7-remove)
 
@@ -110,13 +110,15 @@ inputs:
 
 Once you've chosen your configuration, run `serverless deploy` again (or simply just `serverless`) to deploy your changes.
 
-### 5. Develop
+### 5. Dev Mode
 
 <img src="/assets/dev-demo.gif" height="250" align="right">
 
-Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, you could enable dev mode, which allows the CLI to watch for changes in your source directory as you develop, and deploy instantly on save. 
+Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, run `serverless dev`, which allows the CLI to watch for changes in your source directory as you develop, and deploy instantly on save. 
 
-Dev mode also enables live logs from your express app so that you can see the results of your tests right away on the CLI as they happen. To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file.
+To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file.
+
+Dev mode also enables live streaming logs from your express app so that you can see the results of your code changes right away on the CLI as they happen.
 
 ### 6. Monitor
 
