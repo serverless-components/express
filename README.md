@@ -2,7 +2,7 @@
 
 <br/>
 
-**Serverless Express Component** ⎯⎯⎯ Rapidly deploy express applications on serverless infrastructure (AWS HTTP API and AWS Lambda) with zero configuration, powered by [Serverless Components](https://github.com/serverless/components/).
+**Serverless Express Component** ⎯⎯⎯ Rapidly deploy express applications on serverless infrastructure (AWS HTTP API and AWS Lambda) on your own AWS account with zero configuration, powered by [Serverless Components](https://github.com/serverless/components/).
 
 <br/>
 
