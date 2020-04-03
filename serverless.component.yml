@@ -1,7 +1,7 @@
-name: express
+name: pmuens-express
 version: 0.0.19
-author: eahefnawy
-org: serverlessinc
+author: pmuens
+org: pmuens
 description: Deploys a serverless Express.js application onto AWS Lambda and AWS HTTP API.
 keywords: aws, serverless, express
 repo: https://github.com/serverless-components/express

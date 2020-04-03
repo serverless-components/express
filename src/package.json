@@ -12,7 +12,15 @@
   "author": "Serverless, Inc.",
   "license": "Apache",
   "dependencies": {
+    "@serverless/knative-serving": "github:serverless-components/knative-serving#master",
+    "@serverless/kubernetes-configmap": "github:serverless-components/kubernetes-configmap#master",
+    "@serverless/kubernetes-namespace": "github:serverless-components/kubernetes-namespace#master",
+    "@serverless/kubernetes-pod": "github:serverless-components/kubernetes-pod#master",
+    "@serverless/minio-bucket": "github:serverless-components/minio-bucket#master",
+    "@serverless/minio-object": "github:serverless-components/minio-object#master",
     "fs-extra": "^8.1.0",
-    "moment": "^2.24.0"
+    "globby": "^11.0.0",
+    "moment": "^2.24.0",
+    "tar": "^6.0.1"
   }
 }
