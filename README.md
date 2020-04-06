@@ -2,7 +2,7 @@
 
 <br/>
 
-**Serverless Express** ⎯⎯⎯ This [Serverless Framework Component](https://github.com/serverless/components) is a specialized developer experience focused on making it easy to deploy and manage Express.js applications on serverless infrastructure (specifically AWS HTTP API and AWS Lambda) on your own AWS account.  It comes loaded with powerful features and represents possibly the easiest, cheapest and most scalable way to host Express.js.
+**Serverless Express** ⎯⎯⎯ This [Serverless Framework Component](https://github.com/serverless/components) is a specialized developer experience focused on making it easy to deploy and manage Express.js applications on serverless infrastructure (specifically AWS HTTP API and AWS Lambda) on your own AWS account.  It comes loaded with powerful development features and represents possibly the easiest, cheapest and most scalable way to host Express.js.
 
 <br/>
 
