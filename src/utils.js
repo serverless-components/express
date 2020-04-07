@@ -44,6 +44,12 @@ const getDefaultLambdaRolePolicyArn = () => {
  * @param ${string} region - aws region
  */
 const getClients = (credentials, region = 'us-east-1') => {
+  // this error message assumes that the user is running via the CLI though...
+  if (Object.keys(credentials).length === 0) {
+    const msg = `Credentials not found. Make sure you have a .env file in the cwd. - Docs: https://git.io/JvArp`
+    throw new Error(msg)
+  }
+
   AWS.config.update({
     httpOptions: {
       agent
