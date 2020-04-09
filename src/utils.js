@@ -279,6 +279,8 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
 const getDomainHostedZoneId = async (instance, inputs, clients) => {
   const nakedDomain = getNakedDomain(inputs.domain)
 
+  instance.state.nakedDomain = nakedDomain
+
   console.log(`Getting Route53 Hosted Zone ID for domain: ${nakedDomain}`)
 
   const hostedZones = await clients.route53.listHostedZonesByName().promise()
@@ -289,9 +291,8 @@ const getDomainHostedZoneId = async (instance, inputs, clients) => {
   )
 
   if (!hostedZone) {
-    throw Error(
-      `Domain ${nakedDomain} was not found in your AWS account. Please purchase it from Route53 first then try again.`
-    )
+    console.log(`Domain ${nakedDomain} was not found in your AWS account. Skipping DNS operations.`)
+    return
   }
 
   hostedZone = hostedZone.Id.replace('/hostedzone/', '') // hosted zone id is always prefixed with this :(
@@ -301,97 +302,131 @@ const getDomainHostedZoneId = async (instance, inputs, clients) => {
   return hostedZone
 }
 
-/**
- * Get an AWS ACM Certificate by a domain name
- * @param {*} instance
- * @param {*} inputs
- * @param {*} clients
- */
-const getCertificateArnByDomain = async (instance, inputs, clients) => {
-  const nakedDomain = getNakedDomain(inputs.domain)
-
-  console.log(`Checking if a certificate for the ${nakedDomain} domain exists`)
+const getCertificateArnByDomain = async (clients, instance) => {
   const listRes = await clients.acm.listCertificates().promise()
-  const certificate = listRes.CertificateSummaryList.find((cert) => cert.DomainName === nakedDomain)
-
+  const certificate = listRes.CertificateSummaryList.find(
+    (cert) => cert.DomainName === instance.state.nakedDomain
+  )
   return certificate && certificate.CertificateArn ? certificate.CertificateArn : null
 }
 
-const describeCertificateByArn = async (clients, certificateArn) => {
-  const certificate = await clients.acm
-    .describeCertificate({ CertificateArn: certificateArn })
-    .promise()
-  return certificate && certificate.Certificate ? certificate.Certificate : null
-}
-
-/**
- * Gets the Resource Record needed on the Certificate Record to validate it via the DNS Validation Method
- * @param {*} certificate
- * @param {*} domain
- */
 const getCertificateValidationRecord = (certificate, domain) => {
-  const domainValidationOption = certificate.DomainValidationOptions.filter(
+  if (!certificate.DomainValidationOptions) {
+    return null
+  }
+  const domainValidationOption = certificate.DomainValidationOptions.find(
     (option) => option.DomainName === domain
   )
 
-  if (Array.isArray(domainValidationOption)) {
-    return domainValidationOption[0].ResourceRecord
-  }
   return domainValidationOption.ResourceRecord
 }
 
-/**
- * Find or create AWS ACM Certificate
- */
-const findOrCreateCertificate = async (instance, inputs, clients) => {
-  const nakedDomain = getNakedDomain(inputs.domain)
-  const wildcardSubDomain = `*.${nakedDomain}`
+const describeCertificateByArn = async (clients, certificateArn, domain) => {
+  const res = await clients.acm.describeCertificate({ CertificateArn: certificateArn }).promise()
+  const certificate = res && res.Certificate ? res.Certificate : null
+
+  if (
+    certificate.Status === 'PENDING_VALIDATION' &&
+    !getCertificateValidationRecord(certificate, domain)
+  ) {
+    await sleep(1000)
+    return describeCertificateByArn(clients, certificateArn, domain)
+  }
+
+  return certificate
+}
+
+const findOrCreateCertificate = async (instance, clients) => {
+  const wildcardSubDomain = `*.${instance.state.nakedDomain}`
 
   const params = {
-    DomainName: nakedDomain,
-    SubjectAlternativeNames: [nakedDomain, wildcardSubDomain],
+    DomainName: instance.state.nakedDomain,
+    SubjectAlternativeNames: [instance.state.nakedDomain, wildcardSubDomain],
     ValidationMethod: 'DNS'
   }
 
-  let certificateArn = await getCertificateArnByDomain(instance, inputs, clients)
+  console.log(`Checking if a certificate for the ${instance.state.nakedDomain} domain exists`)
+  let certificateArn = await getCertificateArnByDomain(clients, instance)
 
   if (!certificateArn) {
-    console.log(`Certificate for the ${nakedDomain} domain does not exist. Creating one...`)
+    console.log(
+      `Certificate for the ${instance.state.nakedDomain} domain does not exist. Creating...`
+    )
     certificateArn = (await clients.acm.requestCertificate(params).promise()).CertificateArn
-  } else {
-    console.log(`Found certificate with the ARN ${certificateArn}`)
   }
 
-  const certificate = await describeCertificateByArn(clients, certificateArn)
+  const certificate = await describeCertificateByArn(
+    clients,
+    certificateArn,
+    instance.state.nakedDomain
+  )
 
-  if (certificate.Status !== 'ISSUED') {
-    console.log(
-      `AWS ACM Certificate is not yet valid for the domain: ${nakedDomain}.  Validating it via the DNS method...`
+  console.log(
+    `Certificate for ${instance.state.nakedDomain} is in a "${certificate.Status}" status`
+  )
+
+  if (certificate.Status === 'PENDING_VALIDATION') {
+    const certificateValidationRecord = getCertificateValidationRecord(
+      certificate,
+      instance.state.nakedDomain
     )
+    // only validate if domain/hosted zone is found in this account
+    if (instance.state.domainHostedZoneId) {
+      console.log(`Validating the certificate for the ${instance.state.nakedDomain} domain.`)
 
-    const certificateValidationRecord = getCertificateValidationRecord(certificate, nakedDomain)
-
-    const recordParams = {
-      HostedZoneId: instance.state.domainHostedZoneId,
-      ChangeBatch: {
-        Changes: [
-          {
-            Action: 'UPSERT',
-            ResourceRecordSet: {
-              Name: certificateValidationRecord.Name,
-              Type: certificateValidationRecord.Type,
-              TTL: 300,
-              ResourceRecords: [
-                {
-                  Value: certificateValidationRecord.Value
-                }
-              ]
+      const recordParams = {
+        HostedZoneId: instance.state.domainHostedZoneId,
+        ChangeBatch: {
+          Changes: [
+            {
+              Action: 'UPSERT',
+              ResourceRecordSet: {
+                Name: certificateValidationRecord.Name,
+                Type: certificateValidationRecord.Type,
+                TTL: 300,
+                ResourceRecords: [
+                  {
+                    Value: certificateValidationRecord.Value
+                  }
+                ]
+              }
             }
-          }
-        ]
+          ]
+        }
       }
+      await clients.route53.changeResourceRecordSets(recordParams).promise()
+      console.log(
+        `Your certificate was created and is being validated. It may take a few mins to validate.`
+      )
+      console.log(
+        `Please deploy again after few mins to use your newly validated certificate and activate your domain.`
+      )
+    } else {
+      // if domain is not in account, let the user validate manually
+      console.log(
+        `Certificate for the ${instance.state.nakedDomain} domain was created, but not validated. Please validate it manually.`
+      )
+      console.log(`Certificate Validation Record Name: ${certificateValidationRecord.Name} `)
+      console.log(`Certificate Validation Record Type: ${certificateValidationRecord.Type} `)
+      console.log(`Certificate Validation Record Value: ${certificateValidationRecord.Value} `)
     }
-    await clients.route53.changeResourceRecordSets(recordParams).promise()
+  } else if (certificate.Status === 'ISSUED') {
+    // if certificate status is ISSUED, mark it a as valid for CloudFront to use
+    instance.state.certificateValid = true
+  } else if (certificate.Status === 'SUCCESS') {
+    // nothing to do here. We just need to wait a min until the status changes to ISSUED
+  } else if (certificate.Status === 'VALIDATION_TIMED_OUT') {
+    // if 72 hours passed and the user did not validate the certificate
+    // it will timeout and the user will need to recreate and validate the certificate manulaly
+    console.log(
+      `Certificate validation timed out after 72 hours. Please recreate and validate the certifcate manually.`
+    )
+    console.log(`Your domain will not work until your certificate is created and validated.`)
+  } else {
+    // something else happened?!
+    throw new Error(
+      `Failed to validate ACM certificate. Unsupported ACM certificate status ${certificate.Status}`
+    )
   }
 
   return certificateArn
@@ -412,7 +447,7 @@ const createDomainInApig = async (instance, inputs, clients) => {
       DomainName: inputs.domain,
       DomainNameConfigurations: [
         {
-          EndpointType: 'EDGE',
+          EndpointType: 'REGIONAL', // ApiGateway V2 does not support EDGE endpoints yet (Writte in April 9th 2020)
           SecurityPolicy: 'TLS_1_2',
           CertificateArn: instance.state.certificateArn
         }
@@ -427,8 +462,6 @@ const createDomainInApig = async (instance, inputs, clients) => {
     }
     throw e
   }
-
-  console.log(`Domain ${inputs.domain} successfully created.`)
   return res
 }
 
@@ -440,7 +473,7 @@ const createDomainInApig = async (instance, inputs, clients) => {
  */
 const ensureRecordSetForApiGCustomDomain = async (instance, inputs, clients) => {
   console.log(
-    `Ensuring the existence of a Route 53 Hosted Zone AliasTarget Record Set for HTTP API with a Hosted Zone ID: ${instance.state.distributionHostedZoneId} and DNS Name: ${instance.state.distributionDomainName}.`
+    `Ensuring the existence of a Route 53 Hosted Zone AliasTarget Record Set for HTTP API with a Hosted Zone ID: ${instance.state.apigatewayHostedZoneId} and DNS Name: ${instance.state.apigatewayDomainName}.`
   )
 
   const changeParams = {
@@ -453,8 +486,8 @@ const ensureRecordSetForApiGCustomDomain = async (instance, inputs, clients) => 
             Name: inputs.domain,
             Type: 'A',
             AliasTarget: {
-              HostedZoneId: instance.state.distributionHostedZoneId,
-              DNSName: instance.state.distributionDomainName,
+              HostedZoneId: instance.state.apigatewayHostedZoneId,
+              DNSName: instance.state.apigatewayDomainName,
               EvaluateTargetHealth: false
             }
           }
@@ -480,17 +513,17 @@ const findOrCreateCustomDomain = async (instance, inputs, clients) => {
     console.log(`Verifying Custom Domain exists on API Gateway: ${inputs.domain}...`)
     const params = { DomainName: inputs.domain }
     const domain = await clients.apig.getDomainName(params).promise()
-    result.distributionHostedZoneId = domain.DomainNameConfigurations[0].HostedZoneId
-    result.distributionDomainName = domain.DomainNameConfigurations[0].ApiGatewayDomainName
+    result.apigatewayHostedZoneId = domain.DomainNameConfigurations[0].HostedZoneId
+    result.apigatewayDomainName = domain.DomainNameConfigurations[0].ApiGatewayDomainName
     return result
   } catch (error) {
     if (error.code === 'NotFoundException') {
-      console.log(`Custom Domain not found oni API Gateway: ${inputs.domain}.  Creating it...`)
+      console.log(`Custom Domain not found in API Gateway: ${inputs.domain}.  Creating it...`)
       const res = await createDomainInApig(instance, inputs, clients)
-      result.distributionHostedZoneId = res.DomainNameConfigurations[0].HostedZoneId
-      result.distributionDomainName = res.DomainNameConfigurations[0].ApiGatewayDomainName
+      result.apigatewayHostedZoneId = res.DomainNameConfigurations[0].HostedZoneId
+      result.apigatewayDomainName = res.DomainNameConfigurations[0].ApiGatewayDomainName
       console.log(
-        `Domain ${instance.state.domain} successfully created.  If this is your first deploy, please note that you will have to wait typical DNS propagation times for your domain name to be accessible.  This is often only 10-20 minutes, but on occassion can take ~4 hours.`
+        `Domain ${instance.state.domain} successfully created. If this is your first deploy, please note that you will have to wait typical DNS propagation times for your domain name to be accessible.  This is often only 10-20 minutes, but on occassion can take ~4 hours.`
       )
       return result
     }
@@ -502,10 +535,8 @@ const findOrCreateCustomDomain = async (instance, inputs, clients) => {
  * Ensure API Gateway API is mapped to the custom API Gateway Domain
  */
 const findOrCreateApiMapping = async (instance, inputs, clients) => {
-  const result = {}
-
   console.log(
-    `Verifying API Gateway Custom Domain: ${inputs.domain} is mapped to API ID: ${instance.state.apiId}`
+    `Verifying API Gateway custom domain ${inputs.domain} is mapped to API ID: ${instance.state.apiId}`
   )
 
   let apiMapping
@@ -532,13 +563,16 @@ const findOrCreateApiMapping = async (instance, inputs, clients) => {
       Stage: '$default'
     }
     const resMapping = await clients.apig.createApiMapping(createApiMappingParams).promise()
-    console.log(`API Mapping successfully created with ID: ${result.apiMappingId}`)
+    console.log(`API Mapping successfully created with ID: ${resMapping.ApiMappingId}`)
     return resMapping.ApiMappingId
   } catch (e) {
     if (e.code === 'TooManyRequestsException') {
       console.log(`AWS API Gateway is throttling our API requests.  Sleeping for 2 seconds...`)
       await sleep(2000)
       return findOrCreateApiMapping(instance, inputs, clients)
+    }
+    if (e.code === 'ConflictException') {
+      throw new Error(`The domain ${inputs.domain} is already in use by another API`)
     }
     throw e
   }
@@ -849,16 +883,25 @@ const createOrUpdateDomain = async (instance, inputs, clients) => {
 
   instance.state.domainHostedZoneId = await getDomainHostedZoneId(instance, inputs, clients)
 
-  instance.state.certificateArn = await findOrCreateCertificate(instance, inputs, clients)
+  instance.state.certificateArn = await findOrCreateCertificate(instance, clients)
+
+  // if certificate is not valid, then we cannot create the domain name
+  // the user has to manually validate the certificate
+  if (!instance.state.certificateValid) {
+    delete instance.state.domain
+    return
+  }
 
   const domain = await findOrCreateCustomDomain(instance, inputs, clients)
-  instance.state.distributionHostedZoneId = domain.distributionHostedZoneId
-  instance.state.distributionDomainName = domain.distributionDomainName
+  instance.state.apigatewayHostedZoneId = domain.apigatewayHostedZoneId
+  instance.state.apigatewayDomainName = domain.apigatewayDomainName
 
   const mappingId = await findOrCreateApiMapping(instance, inputs, clients)
   instance.state.apiMappingId = mappingId
 
-  await ensureRecordSetForApiGCustomDomain(instance, inputs, clients)
+  if (instance.state.domainHostedZoneId) {
+    await ensureRecordSetForApiGCustomDomain(instance, inputs, clients)
+  }
 }
 
 /**
@@ -1011,7 +1054,7 @@ const removeDnsRecordsForApigDomain = async (instance, clients) => {
   if (
     !instance.state.domain ||
     !instance.state.domainHostedZoneId ||
-    !instance.state.distributionDomainName
+    !instance.state.apigatewayDomainName
   ) {
     return
   }
@@ -1028,8 +1071,8 @@ const removeDnsRecordsForApigDomain = async (instance, clients) => {
             Name: instance.state.domain,
             Type: 'A',
             AliasTarget: {
-              HostedZoneId: instance.state.distributionHostedZoneId,
-              DNSName: instance.state.distributionDomainName,
+              HostedZoneId: instance.state.apigatewayHostedZoneId,
+              DNSName: instance.state.apigatewayDomainName,
               EvaluateTargetHealth: false
             }
           }
