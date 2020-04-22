@@ -6,6 +6,7 @@ exports.handler = async (event, context) => {
   // until aws-serverless-express supports APIG 2.0
   event.path = event.requestContext.http.path
   event.method = event.requestContext.http.method
+  event.httpMethod = event.requestContext.http.method
 
   // NOTICE: require() is relative to this file, while existsSync() is relative to the cwd, which is the root of lambda
   let app

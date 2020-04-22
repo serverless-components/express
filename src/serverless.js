@@ -59,7 +59,7 @@ class Express extends Component {
 
     const outputs = {}
     outputs.url = this.state.url
-    if (this.state.domain) {
+    if (inputs.domain) {
       outputs.domain = `https://${this.state.domain}`
     }
 
