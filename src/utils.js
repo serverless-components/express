@@ -825,10 +825,6 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
     // CredentialsArn: inputs.roleName || instance.state.defaultLambdaRoleArn,
     Description: inputs.description || getDefaultDescription(instance),
     Target: `arn:aws:apigateway:${instance.state.region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`,
-    CorsConfiguration: {
-      AllowHeaders: ['*'],
-      AllowOrigins: ['*']
-    }
   }
 
   const res = await clients.apig.createApi(createApiParams).promise()
