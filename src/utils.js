@@ -564,7 +564,12 @@ const createOrUpdateFunctionRole = async (instance, inputs, clients) => {
     
     // If user role exists, save it to state so it can be used for the create/update lambda logic later
     if (userRoleArn) {
+      console.log(`The provided IAM Role with the name: ${inputs.roleName} in the inputs exists.`)
       instance.state.userRoleArn = userRoleArn
+
+      // Save AWS Account ID by fetching the role ID
+      // TODO: This may not work with cross-account roles.
+      instance.state.awsAccountId = instance.state.userRoleArn.split(':')[4]
     } else {
       throw new Error(`The provided IAM Role with the name: ${inputs.roleName} could not be found.`)
     }
@@ -578,6 +583,7 @@ const createOrUpdateFunctionRole = async (instance, inputs, clients) => {
       clients,
       instance.state.defaultLambdaRoleName
     )
+    instance.state.awsAccountId = instance.state.defaultLambdaRoleArn.split(':')[4]
   }
 
   // Create a default lambda role...
