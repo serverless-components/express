@@ -109,7 +109,7 @@ inputs:
   description: My Express App    # (optional) lambda & api gateway description.
   env:                           # (optional) env vars.
     DEBUG: 'express:*'           #            this express specific env var will print express debug logs.
-  roleArn: arn:aws:abc           # (optional) custom role arn.
+  roleArn: arn:aws:abc           # (optional) custom AWS IAM Role ARN.
   traffic: 0.2                   # (optional) traffic percentage to apply to this deployment.
   domain: api.serverless.com     # (optional) if the domain was registered via AWS Route53 on the account you are deploying to, it will automatically be set-up with your Express app's API Gateway, as well as a free AWS ACM SSL Cert.
   region: us-east-2              # (optional) aws region to deploy to. default is us-east-1.
