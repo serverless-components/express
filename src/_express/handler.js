@@ -1,6 +1,15 @@
 const fs = require('fs')
 const awsServerlessExpress = require('aws-serverless-express')
 
+const expressPackageExists = () => {
+  try {
+    require('express')
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
 exports.handler = async (event, context) => {
   // make event object look like APIG 1.0
   // until aws-serverless-express supports APIG 2.0
@@ -12,10 +21,26 @@ exports.handler = async (event, context) => {
   let app
   if (fs.existsSync('./app.js')) {
     // load the user provided app
-    app = require('../app.js')
+    if (expressPackageExists()) {
+      app = require('../app.js')
+    } else {
+      // user probably did not run "npm i". return a helpful message.
+      return {
+        statusCode: 404,
+        body: 'The "express" dependency was not found. Did you run "npm install"?'
+      }
+    }
   } else {
     // load the built-in default app
     app = require('../_src/app.js')
+  }
+
+  if (typeof app !== 'function') {
+    // make sure user exported app in app.js or return a helpful message.
+    return {
+      statusCode: 404,
+      body: 'Express app not found. Please make sure it is exported in the app.js file.'
+    }
   }
 
   const server = awsServerlessExpress.createServer(app)
