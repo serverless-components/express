@@ -61,6 +61,11 @@ class Express extends Component {
     outputs.url = this.state.url
 
     if (inputs.domain) {
+      // if domain is not in aws account, show the regional url
+      // as it would be required by the external registrars
+      if (this.state.apigatewayDomainName && !this.state.domainHostedZoneId) {
+        outputs.regionalUrl = `https://${this.state.apigatewayDomainName}`
+      }
       outputs.domain = `https://${inputs.domain}`
     }
 
