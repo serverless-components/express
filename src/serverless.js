@@ -23,6 +23,12 @@ class Express extends Component {
    * @param {object} inputs
    */
   async deploy(inputs) {
+    // this error message assumes that the user is running via the CLI though...
+    if (Object.keys(this.credentials.aws).length === 0) {
+      const msg = `Credentials not found. Make sure you have a .env file in the cwd. - Docs: https://git.io/JvArp`
+      throw new Error(msg)
+    }
+
     console.log(`Deploying Express App...`)
 
     // Validate
