@@ -11,6 +11,10 @@ const expressPackageExists = () => {
 }
 
 exports.handler = async (event, context) => {
+  // remove AWS Lambda default handling of unhandled rejections
+  // this makes sure dev mode cli catches unhandled rejections
+  process.removeAllListeners('unhandledRejection')
+
   // make event object look like APIG 1.0
   // until aws-serverless-express supports APIG 2.0
   event.path = event.requestContext.http.path
