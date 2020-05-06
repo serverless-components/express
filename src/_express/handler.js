@@ -31,7 +31,8 @@ exports.handler = async (event, context) => {
       // user probably did not run "npm i". return a helpful message.
       return {
         statusCode: 404,
-        body: 'The "express" dependency was not found. Did you run "npm install"?'
+        body:
+          'The "express" dependency was not found. Did you install "express" it in your source folder via npm.'
       }
     }
   } else {
@@ -43,7 +44,8 @@ exports.handler = async (event, context) => {
     // make sure user exported app in app.js or return a helpful message.
     return {
       statusCode: 404,
-      body: 'Express app not found. Please make sure it is exported in the app.js file.'
+      body:
+        'Express app not found. Please make sure you are exporting express from an "app.js" file.'
     }
   }
 
