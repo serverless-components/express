@@ -42,7 +42,7 @@ Extra:
 
 ### 1. Install
 
-To get started with component, install the latest version of the Serverless Framework:
+To get started with this component, install the latest version of the Serverless Framework:
 
 ```
 $ npm install -g serverless
