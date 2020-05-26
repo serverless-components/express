@@ -6,9 +6,9 @@
 
 <br/>
 
-- [x] **Never Pay For Idle** - No HTTP requests, no cost. Averages $0.0000002-$0.0000009 per request.
+- [x] **Never Pay For Idle** - No HTTP requests, no cost. Averages ~$0.000003 per request.
 - [x] **Zero Configuration** - All we need is your code, then just deploy (advanced config options are available).
-- [x] **Fast Deployments** - Deploy to the cloud in seconds.
+- [x] **Fast Deployments** - Deploy changes to the cloud in seconds.
 - [x] **Realtime Logging** - Rapidly develop on the cloud w/ real-time logs and errors in the CLI.
 - [x] **Canary Deployments** - Deploy your app gradually to a subset of your traffic overtime.
 - [x] **Custom Domain + SSL** - Auto-configure a custom domain w/ a free AWS ACM SSL certificate.
