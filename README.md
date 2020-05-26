@@ -2,7 +2,7 @@
 
 <br/>
 
-**Serverless Express** ⎯⎯⎯ This [Serverless Framework Component](https://github.com/serverless/components) is a specialized developer experience focused on making it easy to deploy and manage Express.js applications on serverless infrastructure (specifically AWS HTTP API and AWS Lambda) on your own AWS account.  It comes loaded with powerful development features and represents possibly the easiest, cheapest and most scalable way to host Express.js.
+**Serverless Express** ⎯⎯⎯ This [Serverless Framework Component](https://github.com/serverless/components) enables you to take existing Express.js apps and deploy them onto cheap, auto-scaling, serverless infrastructure on AWS (specifically AWS HTTP API and AWS Lambda), easily.  It's packed with production-ready features, like custom domains, SSL certificates, canary deployments, and costs an average of **$0.000003** per request.
 
 <br/>
 
