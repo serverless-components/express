@@ -32,7 +32,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 404,
         body:
-          'The "express" dependency was not found. Did you install "express" it in your source folder via npm.'
+          'The "express" dependency was not found. Did you install "express" as a dependency within your source folder via npm?'
       }
     }
   } else {
