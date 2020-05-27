@@ -206,9 +206,13 @@ If your domain is not on AWS Route53, you will have to set this up manually beca
 
 ### Canary Deployments
 
-The Express Components knows how to do Canary deployments out-of-the-box.  This enables you to push out a version of your app (containing code changes you deem risky) which is only served to a percentage of traffic that you specificy (0-99%).  This allows you to test big changes with little risk.
+At scale, when you want to push changes out to a small set of users, Serverless Express offers easy Canary Deployments out of the box!
 
-To perform a canary deployment, make your code changes.  Next, set a traffic weighting in your `serverless.yml` `inputs`:
+This enables you to push out a version of your app (containing code changes you deem risky) which is only served to a percentage of traffic that you specificy (0-99%).  This allows you to test big changes with little risk.
+
+To perform a canary deployment, first update your code with the potentially risky change.  
+
+Next, set a traffic weighting in your `serverless.yml` `inputs`:
 
 ```yaml
 
@@ -218,12 +222,12 @@ inputs:
 
 ```
 
-Run `serverless deploy`.  After deplyoment is complete, 50% of your requests will be randomly handled by the new experimental code.
+This tells Serverless Express to serve the new (potentially risky) code to 50% of the API requests, and the old (stable) code to the other 50% of requests.
+
+Run `serverless deploy`.  After deployment is complete, 50% of your requests will be randomly handled by the new experimental code.
 
 You can slowly increment the percentage over time, just continue to re-deploy it.
 
-When you want to serve all traffic with the new code, simply remove `traffic` from `inputs` and re-deploy.
+If things aren't working, revert your code to the old code, remove the `traffic` configuration option, and deploy.
 
-If you want to undo these changes, make sure your old code is in your `src` `input`, remove `traffic` from `inputs` and re-deploy. 
- 
- 
+If things are working, keep the new code, remove the `traffic` configuration option, and deploy.
