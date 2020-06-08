@@ -1,15 +1,6 @@
 const fs = require('fs')
 const awsServerlessExpress = require('aws-serverless-express')
 
-const expressPackageExists = () => {
-  try {
-    require('express')
-    return true
-  } catch (e) {
-    return false
-  }
-}
-
 exports.handler = async (event, context) => {
   // remove AWS Lambda default handling of unhandled rejections
   // this makes sure dev mode cli catches unhandled rejections
@@ -25,14 +16,22 @@ exports.handler = async (event, context) => {
   let app
   if (fs.existsSync('./app.js')) {
     // load the user provided app
-    if (expressPackageExists()) {
+
+    try {
       app = require('../app.js')
-    } else {
-      // user probably did not run "npm i". return a helpful message.
+    } catch (e) {
+      if (e.message.includes(`Cannot find module 'express'`)) {
+        // user probably did not run "npm i". return a helpful message.
+        return {
+          statusCode: 404,
+          body:
+            'The "express" dependency was not found. Did you install "express" as a dependency within your source folder via npm?'
+        }
+      }
+      // some other require error
       return {
         statusCode: 404,
-        body:
-          'The "express" dependency was not found. Did you install "express" as a dependency within your source folder via npm?'
+        body: e.message
       }
     }
   } else {

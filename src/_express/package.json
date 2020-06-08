@@ -1,5 +1,4 @@
 {
-  "name": "@serverless/express",
   "version": "1.0.0",
   "main": "./handler.js",
   "publishConfig": {
