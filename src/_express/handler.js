@@ -11,6 +11,11 @@ exports.handler = async (event, context) => {
   event.path = event.requestContext.http.path
   event.method = event.requestContext.http.method
   event.httpMethod = event.requestContext.http.method
+  // APIG 2.0 extracts cookies from headers automatically.
+  // We need to put `cookie` back to `headers.cookie` so it works with current aws-serverless-express
+  if (event.cookies && event.cookies.length > 0) {
+    event.headers.cookie = event.cookies.join('; ')
+  }
 
   // NOTICE: require() is relative to this file, while existsSync() is relative to the cwd, which is the root of lambda
   let app
