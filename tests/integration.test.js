@@ -66,6 +66,29 @@ it('should successfully update source code', async () => {
   expect(response.data).toEqual('hello world')
 })
 
+it('should attach cookies correctly', async () => {
+  instanceYaml.inputs.src = path.resolve(__dirname, 'src')
+
+  const instance = await sdk.deploy(instanceYaml, credentials)
+
+  const response1 = await axios.get(`${instance.outputs.url}/cookie`, {
+    headers: {
+      cookie: 'cookie1=yum'
+    }
+  })
+  expect(response1.data).toEqual('cookie1=yum')
+
+  const response2 = await axios.get(`${instance.outputs.url}/cookie`, {
+    headers: {
+      cookie: 'cookie1=yum; cookie2=hot'
+    }
+  })
+  expect(response2.data).toEqual('cookie1=yum; cookie2=hot')
+
+  const response3 = await axios.get(`${instance.outputs.url}/cookie`)
+  expect(response3.data).toEqual('undefined')
+})
+
 it('should enable traffic shifting', async () => {
   // change source code and apply it to a small subset of traffic
   instanceYaml.inputs.traffic = 0.2
