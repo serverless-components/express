@@ -7,7 +7,7 @@
     "lint": "eslint --ignore-path .gitignore .",
     "prettier-check": "prettier -c --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml}\"",
     "prettify": "prettier --write --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml}\"",
-    "test": "jest --testEnvironment node ./test/integration.test.js"
+    "test": "jest --bail 1 --testEnvironment node ./test/integration.test.js"
   },
   "devDependencies": {
     "@serverless/eslint-config": "^2.1.1",
