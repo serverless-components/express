@@ -1,3 +1,5 @@
+'use strict'
+
 const path = require('path')
 const AWS = require('aws-sdk')
 const { ServerlessSDK } = require('@serverless/platform-client')

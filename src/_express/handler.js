@@ -1,3 +1,5 @@
+'use strict'
+
 const fs = require('fs')
 const awsServerlessExpress = require('aws-serverless-express')
 
@@ -25,7 +27,7 @@ exports.handler = async (event, context) => {
     try {
       app = require('../app.js')
     } catch (e) {
-      if (e.message.includes(`Cannot find module 'express'`)) {
+      if (e.message.includes("Cannot find module 'express'")) {
         // user probably did not run "npm i". return a helpful message.
         return {
           statusCode: 404,

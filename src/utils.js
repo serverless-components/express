@@ -1,7 +1,10 @@
+'use strict'
+
 const path = require('path')
 const AWS = require('aws-sdk')
 const moment = require('moment')
 const https = require('https')
+
 const agent = new https.Agent({
   keepAlive: true
 })
@@ -92,7 +95,7 @@ const getNakedDomain = (domain) => {
  * @param ${object} config - the component config
  */
 const packageExpress = async (instance, inputs, outputs) => {
-  console.log(`Packaging Express.js application...`)
+  console.log('Packaging Express.js application...')
 
   // unzip source zip file
   console.log(`Unzipping ${inputs.src || 'files'}...`)
@@ -100,24 +103,24 @@ const packageExpress = async (instance, inputs, outputs) => {
   console.log(`Files unzipped into ${sourceDirectory}...`)
 
   // add shim to the source directory
-  console.log(`Installing Express + AWS Lambda handler...`)
+  console.log('Installing Express + AWS Lambda handler...')
   copySync(path.join(__dirname, '_express'), path.join(sourceDirectory, '_express'))
 
   // Attempt to infer data from the application
   if (inputs.inference) { await infer(instance, inputs, outputs, sourceDirectory) }
 
   // add sdk to the source directory, add original handler
-  console.log(`Installing Serverless Framework SDK...`)
+  console.log('Installing Serverless Framework SDK...')
   instance.state.handler = await instance.addSDK(sourceDirectory, '_express/handler.handler')
 
   if (!inputs.src) {
     // add default express app
-    console.log(`Installing Default Express App...`)
+    console.log('Installing Default Express App...')
     copySync(path.join(__dirname, '_src'), path.join(sourceDirectory, '_src'))
   }
   // zip the source directory with the shim and the sdk
 
-  console.log(`Zipping files...`)
+  console.log('Zipping files...')
   const zipPath = await instance.zip(sourceDirectory)
   console.log(`Files zipped into ${zipPath}...`)
 
@@ -296,9 +299,9 @@ const createLambda = async (instance, inputs, clients) => {
     instance.state.lambdaVersion = res.Version
   } catch (e) {
     if (
-      e.message.includes(`The role defined for the function cannot be assumed by Lambda`) ||
+      e.message.includes('The role defined for the function cannot be assumed by Lambda') ||
       e.message.includes(
-        `Lambda was unable to configure access to your environment variables because the KMS key is invalid`
+        'Lambda was unable to configure access to your environment variables because the KMS key is invalid'
       )
     ) {
       // we need to wait around 2 seconds after the role is created before it can be assumed
@@ -357,9 +360,9 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
     return res.FunctionArn
   } catch (e) {
     if (
-      e.message.includes(`The role defined for the function cannot be assumed by Lambda`) ||
+      e.message.includes('The role defined for the function cannot be assumed by Lambda') ||
       e.message.includes(
-        `Lambda was unable to configure access to your environment variables because the KMS key is invalid`
+        'Lambda was unable to configure access to your environment variables because the KMS key is invalid'
       )
     ) {
       // we need to wait around 2 seconds after the role is created before it can be assumed
@@ -493,10 +496,10 @@ const findOrCreateCertificate = async (instance, clients) => {
       }
       await clients.route53.changeResourceRecordSets(recordParams).promise()
       console.log(
-        `Your certificate was created and is being validated. It may take a few mins to validate.`
+        'Your certificate was created and is being validated. It may take a few mins to validate.'
       )
       console.log(
-        `Please deploy again after few mins to use your newly validated certificate and activate your domain.`
+        'Please deploy again after few mins to use your newly validated certificate and activate your domain.'
       )
     } else {
       // if domain is not in account, let the user validate manually
@@ -516,9 +519,9 @@ const findOrCreateCertificate = async (instance, clients) => {
     // if 72 hours passed and the user did not validate the certificate
     // it will timeout and the user will need to recreate and validate the certificate manulaly
     console.log(
-      `Certificate validation timed out after 72 hours. Please recreate and validate the certifcate manually.`
+      'Certificate validation timed out after 72 hours. Please recreate and validate the certifcate manually.'
     )
-    console.log(`Your domain will not work until your certificate is created and validated.`)
+    console.log('Your domain will not work until your certificate is created and validated.')
   } else {
     // something else happened?!
     throw new Error(
@@ -552,7 +555,7 @@ const createDomainInApig = async (instance, inputs, clients) => {
     res = await clients.apig.createDomainName(params).promise()
   } catch (e) {
     if (e.code === 'TooManyRequestsException') {
-      console.log(`API Gateway is throttling our API Requests *sigh*.  Sleeping for 2 seconds...`)
+      console.log('API Gateway is throttling our API Requests *sigh*.  Sleeping for 2 seconds...')
       await sleep(2000)
       return createDomainInApig(instance, inputs, clients)
     }
@@ -652,7 +655,7 @@ const findOrCreateApiMapping = async (instance, inputs, clients) => {
   }
 
   try {
-    console.log(`API Mapping to API Custom Domain not found.  Creating one...`)
+    console.log('API Mapping to API Custom Domain not found.  Creating one...')
     const createApiMappingParams = {
       DomainName: inputs.domain,
       ApiId: instance.state.apiId,
@@ -663,7 +666,7 @@ const findOrCreateApiMapping = async (instance, inputs, clients) => {
     return resMapping.ApiMappingId
   } catch (e) {
     if (e.code === 'TooManyRequestsException') {
-      console.log(`AWS API Gateway is throttling our API requests.  Sleeping for 2 seconds...`)
+      console.log('AWS API Gateway is throttling our API requests.  Sleeping for 2 seconds...')
       await sleep(2000)
       return findOrCreateApiMapping(instance, inputs, clients)
     }
@@ -777,7 +780,7 @@ const createOrUpdateMetaRole = async (instance, inputs, clients, serverlessAccou
 
     // If it doesn't exist, create it...
     if (!instance.state.metaRoleName) {
-      console.log(`Meta IAM Role does not exist.  Creating one...`)
+      console.log('Meta IAM Role does not exist.  Creating one...')
 
       instance.state.metaRoleName = `${instance.state.name}-meta-role`
       instance.state.metaRolePolicyName = `${instance.state.name}-meta-policy`
@@ -876,7 +879,7 @@ const createOrUpdateLambda = async (instance, inputs, clients) => {
     return createLambda(instance, inputs, clients)
   }
 
-  console.log(`AWS Lambda function found.  Updating it's configuration and code...`)
+  console.log("AWS Lambda function found.  Updating it's configuration and code...")
   await updateLambdaConfig(instance, inputs, clients)
   await updateLambdaCode(instance, inputs, clients)
   console.log(`AWS Lambda version "${instance.state.lambdaVersion}" published`)
@@ -894,7 +897,7 @@ const addPermission = async (instance, inputs, clients) => {
   const lambdaArn = instance.state.aliasArn
   const apigArn = `arn:aws:execute-api:${instance.state.region}:${instance.state.awsAccountId}:${instance.state.apiId}/*/*`
   console.log(`Add permission to Lambda enabling API Gateway with this ARN to call it: ${apigArn}`)
-  var paramsPermission = {
+  const paramsPermission = {
     Action: 'lambda:InvokeFunction',
     FunctionName: lambdaArn,
     Principal: 'apigateway.amazonaws.com',
@@ -903,7 +906,7 @@ const addPermission = async (instance, inputs, clients) => {
   }
   try {
     await clients.lambda.addPermission(paramsPermission).promise()
-    console.log(`Permission successfully added to AWS Lambda for API Gateway`)
+    console.log('Permission successfully added to AWS Lambda for API Gateway')
   } catch (e) {
     if (!e.message.includes('already exists')) {
       throw e
@@ -1024,7 +1027,7 @@ const createOrUpdateDomain = async (instance, inputs, clients) => {
 const removeAllRoles = async (instance, clients) => {
   // Delete Function Role
   if (instance.state.defaultLambdaRoleArn) {
-    console.log(`Deleting the default Function Role...`)
+    console.log('Deleting the default Function Role...')
     try {
       await clients.iam
         .detachRolePolicy({
@@ -1046,7 +1049,7 @@ const removeAllRoles = async (instance, clients) => {
 
   // Delete Meta Role
   if (instance.state.metaRoleName && instance.state.metaRolePolicyArn) {
-    console.log(`Deleting the Meta Role...`)
+    console.log('Deleting the Meta Role...')
     try {
       await clients.iam
         .detachRolePolicy({
@@ -1230,7 +1233,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
 
   // Validate: Start is before End
   if (rangeStart.isAfter(rangeEnd)) {
-    throw new Error(`The "rangeStart" provided is after the "rangeEnd"`)
+    throw new Error('The "rangeStart" provided is after the "rangeEnd"')
   }
 
   // Validate: End is not longer than 30 days
@@ -1274,7 +1277,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   let timeBuckets
   const xData = []
   const yData = []
-  let diffMinutes = Math.ceil(rangeEnd.diff(rangeStart, 'minutes', true)) // 'true' returns decimals
+  const diffMinutes = Math.ceil(rangeEnd.diff(rangeStart, 'minutes', true)) // 'true' returns decimals
 
   // Length: 0 mins - 2 hours
   if (diffMinutes <= 120) {
@@ -1535,7 +1538,7 @@ const getAliasFunctionVersion = async (instance, inputs, clients) => {
     return getAliasRes.FunctionVersion
   } catch (e) {
     if (e.code === 'ResourceNotFoundException') {
-      throw new Error(`The specified traffic destination does not exist`)
+      throw new Error('The specified traffic destination does not exist')
     }
     throw e
   }
