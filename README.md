@@ -2,11 +2,11 @@
 
 <br/>
 
-**Serverless Express** ⎯⎯⎯ This [Serverless Framework Component](https://github.com/serverless/components) enables you to take existing Express.js apps and deploy them onto cheap, auto-scaling, serverless infrastructure on AWS (specifically AWS HTTP API and AWS Lambda), easily.  It's packed with production-ready features, like custom domains, SSL certificates, canary deployments, and costs an average of **$0.000003** per request.
+**Serverless Express** ⎯⎯⎯ This [Serverless Framework Component](https://github.com/serverless/components) enables you to take existing Express.js apps and deploy them onto cheap, auto-scaling, serverless infrastructure on AWS (specifically AWS HTTP API and AWS Lambda), easily. It's packed with production-ready features, like custom domains, SSL certificates, canary deployments, and costs an average of **\$0.000003** per request.
 
 <br/>
 
-- [x] **Never Pay For Idle** - No HTTP requests, no cost. Averages ~$0.000003 per request.
+- [x] **Never Pay For Idle** - No HTTP requests, no cost. Averages ~\$0.000003 per request.
 - [x] **Zero Configuration** - All we need is your code, then just deploy (advanced config options are available).
 - [x] **Fast Deployments** - Deploy changes to the cloud in seconds.
 - [x] **Realtime Logging** - Rapidly develop on the cloud w/ real-time logs and errors in the CLI.
@@ -36,8 +36,8 @@ Get Started:
 
 Extra:
 
-* [**Architecture**](#Architecture)
-* [**Guides**](#Guides)
+- [**Architecture**](#Architecture)
+- [**Guides**](#Guides)
 
 &nbsp;
 
@@ -130,7 +130,7 @@ Once you've chosen your configuration, run `serverless deploy` again (or simply 
 
 <img src="/assets/dev-demo.gif" height="250" align="right">
 
-Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, run `serverless dev`, which allows the CLI to watch for changes in your source directory as you develop, and deploy instantly on save. 
+Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, run `serverless dev`, which allows the CLI to watch for changes in your source directory as you develop, and deploy instantly on save.
 
 To enable dev mode, simply run `serverless dev` from within the directory containing the `serverless.yml` file.
 
@@ -142,7 +142,7 @@ Dev mode also enables live streaming logs from your express app so that you can 
 
 Anytime you need to know more about your running express instance, you can run `serverless info` to view the most critical info. This is especially helpful when you want to know the outputs of your instances so that you can reference them in another instance. You will also see a url where you'll be able to view more info about your instance on the Serverless Dashboard.
 
-It also shows you the status of your instance, when it was last deployed, and how many times it was deployed. To dig even deeper, you can pass the `--debug` flag to view the state of your component instance in case the deployment failed for any reason. 
+It also shows you the status of your instance, when it was last deployed, and how many times it was deployed. To dig even deeper, you can pass the `--debug` flag to view the state of your component instance in case the deployment failed for any reason.
 
 ### Remove
 
@@ -173,26 +173,22 @@ First, register your custom domain via Route53 on the AWS Acccount you are deplo
 Next, add the domain to the `domain` in `inputs` in `serverless.yml`, like this:
 
 ```yaml
-
 inputs:
   src: ./
   domain: serverlessexpress.com
-
 ```
 
 You can also use a subdomain:
 
 ```yaml
-
 inputs:
   src: ./
   domain: express.component-demos.com
-
 ```
 
 Run `serverless deploy`.
 
-Keep in mind, it will take AWS CloudFront and AWS Route53 and DNS up to 24 hours to propagate these changes and make your custom domain globally accessible.  However, with recent AWS CloudFront speed increases, your domain should be accessible within ~20 minutes.
+Keep in mind, it will take AWS CloudFront and AWS Route53 and DNS up to 24 hours to propagate these changes and make your custom domain globally accessible. However, with recent AWS CloudFront speed increases, your domain should be accessible within ~20 minutes.
 
 #### Setting up domains registered outside of AWS
 
@@ -205,28 +201,25 @@ If your domain is not on AWS Route53, you will have to set this up manually beca
 5. Notice the regional url that is returned as an output. Copy this URL, get back to your registrar and add another CNAME record with your domain or subdomain name and a value of this regional url. This ensures that your domain points to that cloudfront URL.
 6. After around 20 mins, your SSL certificate and domain should all be working and pointing to your URL. Keep in mind that if you change the `name`, `stage`, `app` or `org` properties in `serverless.yml`, this would result in a completely new instance with a new cloudfront url. This allows you to setup different domains for each stage or instance
 
-
 ### Canary Deployments
 
 At scale, when you want to push changes out to a small set of users, Serverless Express offers easy Canary Deployments out of the box!
 
-This enables you to push out a version of your app (containing code changes you deem risky) which is only served to a percentage of traffic that you specificy (0-99%).  This allows you to test big changes with little risk.
+This enables you to push out a version of your app (containing code changes you deem risky) which is only served to a percentage of traffic that you specificy (0-99%). This allows you to test big changes with little risk.
 
-To perform a canary deployment, first update your code with the potentially risky change.  
+To perform a canary deployment, first update your code with the potentially risky change.
 
 Next, set a traffic weighting in your `serverless.yml` `inputs`:
 
 ```yaml
-
 inputs:
   src: ./
   traffic: 0.5 # 50%
-
 ```
 
 This tells Serverless Express to serve the new (potentially risky) code to 50% of the API requests, and the old (stable) code to the other 50% of requests.
 
-Run `serverless deploy`.  After deployment is complete, 50% of your requests will be randomly handled by the new experimental code.
+Run `serverless deploy`. After deployment is complete, 50% of your requests will be randomly handled by the new experimental code.
 
 You can slowly increment the percentage over time, just continue to re-deploy it.
 
@@ -236,16 +229,16 @@ If things are working, keep the new code, remove the `traffic` configuration opt
 
 ### Auto-Generate An OpenAPI V3 Specification From Your Express.js App
 
-Version 1.1.0 introduced experimental support for a new feature called *"Inference"*.
+Version 1.1.0 introduced experimental support for a new feature called _"Inference"_.
 
 Inference attempts to run your application on each deployment and extract information from it.
 
 The first feature Inference enables is detecting your API routes and converting them to the OpenAPI format, then adding them to the `outputs` of your Component Instance.
 
-Currently, Inference is disabled by default.  To enable it, add `inference: true` to your `serverless.yml` and ensure you are using the latest version of the Express coponent (>= 1.1.0).
+Currently, Inference is disabled by default. To enable it, add `inference: true` to your `serverless.yml` and ensure you are using the latest version of the Express coponent (>= 1.1.0).
 
-Given a lot of things can happen in your application upon starting it up, Inference does not work consistently.  If it runs into an error trying to start your application, it will try its best to pass through useful errors to you so you can address what's blocking it from working.
+Given a lot of things can happen in your application upon starting it up, Inference does not work consistently. If it runs into an error trying to start your application, it will try its best to pass through useful errors to you so you can address what's blocking it from working.
 
-Overall, an OpenAPI specification generated by default is very powerful.  This means you don't have to maintain that manually since it auto-updates on every deployment.  (That's what serverless is all about!)
+Overall, an OpenAPI specification generated by default is very powerful. This means you don't have to maintain that manually since it auto-updates on every deployment. (That's what serverless is all about!)
 
-We will be adding many interesting features built on this.  Extracting your endpoints and putting them into a common format was merely hte first step...
+We will be adding many interesting features built on this. Extracting your endpoints and putting them into a common format was merely hte first step...

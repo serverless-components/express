@@ -1,15 +1,15 @@
-'use strict'
+'use strict';
 
-const express = require('express')
+const express = require('express');
 
-const app = express()
+const app = express();
 
 app.get('/cookie', (req, res) => {
-  res.send(`${req.headers.cookie}`)
-})
+  res.send(`${req.headers.cookie}`);
+});
 
 app.get('/*', (req, res) => {
-  res.send('hello world')
-})
+  res.send('hello world');
+});
 
-module.exports = app
+module.exports = app;
