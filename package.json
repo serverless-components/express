@@ -5,6 +5,8 @@
   "license": "Apache",
   "scripts": {
     "lint": "eslint --ignore-path .gitignore .",
+    "prettier-check": "prettier -c --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml}\"",
+    "prettify": "prettier --write --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml}\"",
     "test": "jest ./test/integration.test.js --testEnvironment node"
   },
   "devDependencies": {
@@ -16,7 +18,7 @@
     "eslint": "^7.3.1",
     "eslint-plugin-import": "^2.21.2",
     "jest": "^25.1.0",
-    "prettier": "^1.18.2"
+    "prettier": "^2.0.5"
   },
   "eslintConfig": {
     "extends": "@serverless/eslint-config/node",
