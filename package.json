@@ -4,8 +4,8 @@
   "author": "Serverless, Inc.",
   "license": "Apache",
   "scripts": {
-    "test": "jest ./test/integration.test.js --testEnvironment node",
-    "lint": "eslint --ignore-path .gitignore ."
+    "lint": "eslint --ignore-path .gitignore .",
+    "test": "jest ./test/integration.test.js --testEnvironment node"
   },
   "devDependencies": {
     "@serverless/eslint-config": "^2.1.1",
