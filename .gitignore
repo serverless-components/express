@@ -8,6 +8,6 @@
 /src/_src/package-lock.json
 /src/node_modules
 /src/package-lock.json
-/tests/src/node_modules
-/tests/src/package-lock.json
+/test/src/node_modules
+/test/src/package-lock.json
 
