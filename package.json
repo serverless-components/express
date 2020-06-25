@@ -5,6 +5,7 @@
   "license": "Apache",
   "scripts": {
     "lint": "eslint --ignore-path .gitignore .",
+    "postinstall": "./scripts/install-nested-packages.js",
     "prettier-check": "prettier -c --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml}\"",
     "prettify": "prettier --write --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml}\"",
     "test": "jest --bail 1 --testEnvironment node ./test/integration.test.js"
