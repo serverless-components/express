@@ -25,6 +25,7 @@ exports.handler = async (event, context) => {
     // load the user provided app
 
     try {
+      // eslint-disable-next-line import/no-unresolved
       app = require('../app.js')
     } catch (e) {
       if (e.message.includes("Cannot find module 'express'")) {

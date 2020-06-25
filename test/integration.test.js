@@ -103,7 +103,7 @@ it('should enable traffic shifting', async () => {
   let experimentalCodeResponses = 0
   const get = async () => {
     if (stableCodeResponses + experimentalCodeResponses > 10 && experimentalCodeResponses > 1) {
-      return
+      return null
     }
 
     const response = await axios.get(instance.outputs.url)
@@ -135,7 +135,7 @@ it('should disable traffic shifting', async () => {
   const get = async () => {
     // after 10 requests, exit
     if (requests > 10) {
-      return
+      return null
     }
 
     // make a request
