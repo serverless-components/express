@@ -5,7 +5,7 @@ const axios = require('axios');
 const { sleep, generateId, getCredentials, getServerlessSdk, getLambda } = require('./utils');
 
 // set enough timeout for deployment to finish
-jest.setTimeout(30000);
+jest.setTimeout(60000);
 
 // the yaml file we're testing against
 const instanceYaml = {
