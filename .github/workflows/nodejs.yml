@@ -19,7 +19,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - name: Install Dependencies
-      run: npm install && cd tests/src && npm install && cd ../../
+      run: npm install && cd test/src && npm install && cd ../../
     - name: Run Integration Tests
       run: npm test
       env:
