@@ -1,5 +1,6 @@
 'use strict'
 
+// eslint-disable-next-line import/no-unresolved
 const { Component } = require('@serverless/core')
 const {
   generateId,

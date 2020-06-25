@@ -1,6 +1,7 @@
 'use strict'
 
 const path = require('path')
+// eslint-disable-next-line import/no-extraneous-dependencies
 const AWS = require('aws-sdk')
 const moment = require('moment')
 const https = require('https')
@@ -178,28 +179,28 @@ const generateOpenAPI = async (instance, inputs, outputs, app) => {
 
   // Parts of the OpenAPI spec that we may use these at a later date.
   // For now, they are unincorporated.
-  const oaServersObject = {
-    url: null,
-    description: null,
-    variables: {}
-  }
-  const oaComponentsObject = {
-    schemas: {},
-    responses: {},
-    parameters: {},
-    examples: {},
-    requestBodies: {},
-    headers: {},
-    securitySchemes: {},
-    links: {},
-    callbacks: {}
-  }
-  const oaPathItem = {
-    description: null,
-    summary: null,
-    operationId: null,
-    responses: {}
-  }
+  // const oaServersObject = {
+  //   url: null,
+  //   description: null,
+  //   variables: {}
+  // }
+  // const oaComponentsObject = {
+  //   schemas: {},
+  //   responses: {},
+  //   parameters: {},
+  //   examples: {},
+  //   requestBodies: {},
+  //   headers: {},
+  //   securitySchemes: {},
+  //   links: {},
+  //   callbacks: {}
+  // }
+  // const oaPathItem = {
+  //   description: null,
+  //   summary: null,
+  //   operationId: null,
+  //   responses: {}
+  // }
 
   if (app && app._router && app._router.stack && app._router.stack.length) {
     app._router.stack.forEach((route) => {
@@ -218,7 +219,7 @@ const generateOpenAPI = async (instance, inputs, outputs, app) => {
       // Save path
       openApi.paths[ePath] = openApi.paths[ePath] || {}
 
-      for (const method in route.route.methods) {
+      for (const method of Object.keys(route.route.methods)) {
         // Save method
         openApi.paths[ePath][method] = {}
       }
@@ -309,7 +310,8 @@ const createLambda = async (instance, inputs, clients) => {
       return createLambda(instance, inputs, clients)
     }
     throw e
-  }
+	}
+	return null
 }
 
 /*
@@ -392,7 +394,7 @@ const getDomainHostedZoneId = async (instance, inputs, clients) => {
 
   if (!hostedZone) {
     console.log(`Domain ${nakedDomain} was not found in your AWS account. Skipping DNS operations.`)
-    return
+    return null
   }
 
   hostedZone = hostedZone.Id.replace('/hostedzone/', '') // hosted zone id is always prefixed with this :(
@@ -884,6 +886,7 @@ const createOrUpdateLambda = async (instance, inputs, clients) => {
   await updateLambdaCode(instance, inputs, clients)
   console.log(`AWS Lambda version "${instance.state.lambdaVersion}" published`)
   console.log(`AWS Lambda function updated with ARN: ${instance.state.lambdaArn}`)
+  return null
 }
 
 /*
@@ -1273,7 +1276,6 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
    */
 
   let period
-  let timeUnit
   let timeBuckets
   const xData = []
   const yData = []
@@ -1281,7 +1283,6 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
 
   // Length: 0 mins - 2 hours
   if (diffMinutes <= 120) {
-    timeUnit = 'minute'
     period = 60
     rangeStart = rangeStart.startOf('minute')
     rangeEnd = rangeEnd.endOf('minute')
@@ -1294,7 +1295,6 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   }
   // Length: 2 hours - 48 hours
   else if (diffMinutes > 120 && diffMinutes <= 2880) {
-    timeUnit = 'hour'
     period = 3600
     rangeStart = rangeStart.startOf('hour')
     rangeEnd = rangeEnd.endOf('hour')
@@ -1307,7 +1307,6 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   }
   // Length: 48 hours to 32 days
   else if (diffMinutes > 2880) {
-    timeUnit = 'day'
     period = 86400
     rangeStart = rangeStart.startOf('day')
     rangeEnd = rangeEnd.endOf('day')
@@ -1457,7 +1456,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         metric.title = 'Requests'
         metric.yDataSets[0].color = '#000000'
         // Get Sum
-        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous)
       }
       if (cwMetric.Label === '5xx') {
         metric.title = 'Errors - 5xx'
@@ -1465,14 +1464,14 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         metric.yDataSets[0].color = '#FE5850'
 
         // Get Sum
-        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous)
       }
       if (cwMetric.Label === '4xx') {
         metric.title = 'Errors - 4xx'
         metric.statColor = '#FE5850'
         metric.yDataSets[0].color = '#FE5850'
         // Get Sum
-        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous)
       }
       if (cwMetric.Label === 'Latency') {
         metric.title = 'Latency'
@@ -1481,7 +1480,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         // Round Decimals
         metric.yDataSets[0].yData = metric.yDataSets[0].yData.map((val) => Math.ceil(val))
         // Get Sum
-        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous)
         // Get Average
         const filtered = metric.yDataSets[0].yData.filter(x => x > 0)
         metric.stat = Math.ceil(metric.stat / filtered.length)
