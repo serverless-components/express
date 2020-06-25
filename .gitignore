@@ -3,11 +3,8 @@
 /node_modules
 /package-lock.json
 /src/_express/node_modules
-/src/_express/package-lock.json
 /src/_src/node_modules
-/src/_src/package-lock.json
 /src/node_modules
-/src/package-lock.json
 /test/src/node_modules
 /test/src/package-lock.json
 
