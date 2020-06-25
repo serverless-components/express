@@ -1,17 +1,12 @@
 {
-  "name": "@serverless/express",
-  "version": "1.0.0",
-  "main": "./serverless.js",
-  "publishConfig": {
-    "access": "public"
-  },
+  "name": "@serverless-components/express",
+  "private": true,
+  "author": "Serverless, Inc.",
+  "license": "Apache",
   "scripts": {
     "test": "jest ./tests/integration.test.js --testEnvironment node",
     "lint": "eslint . --fix --cache"
   },
-  "author": "Serverless, Inc.",
-  "license": "Apache",
-  "dependencies": {},
   "devDependencies": {
     "@serverless/platform-client": "^0.24.0",
     "aws-sdk": "^2.640.0",
