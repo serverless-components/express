@@ -4,6 +4,6 @@
   "license": "Apache",
   "dependencies": {
     "fs-extra": "^8.1.0",
-    "moment": "^2.24.0"
+    "moment": "^2.27.0"
   }
 }
