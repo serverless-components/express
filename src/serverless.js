@@ -1,3 +1,5 @@
+'use strict'
+
 const { Component } = require('@serverless/core')
 const {
   generateId,
@@ -26,15 +28,16 @@ class Express extends Component {
     const outputs = {}
 
     // Defaults
-    inputs.inference = inputs.inference === true ? true : false
+    inputs.inference = inputs.inference === true
 
     // Check credentials exist
     if (Object.keys(this.credentials.aws).length === 0) {
-      const msg = `AWS Credentials not found. Make sure you have a .env file in the cwd. - Docs: https://git.io/JvArp`
+      const msg =
+        'AWS Credentials not found. Make sure you have a .env file in the cwd. - Docs: https://git.io/JvArp'
       throw new Error(msg)
     }
 
-    console.log(`Deploying Express App...`)
+    console.log('Deploying Express App...')
 
     // Validate
     if (inputs.timeout && inputs.timeout > 30) {
@@ -62,10 +65,8 @@ class Express extends Component {
 
     if (inputs.domain) {
       await createOrUpdateDomain(this, inputs, clients)
-    } else {
-      if (this.state.domain) {
-        delete this.state.domain
-      }
+    } else if (this.state.domain) {
+      delete this.state.domain
     }
 
     outputs.url = this.state.url

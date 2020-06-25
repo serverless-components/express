@@ -1,3 +1,5 @@
+'use strict'
+
 const path = require('path')
 const axios = require('axios')
 const { sleep, generateId, getCredentials, getServerlessSdk, getLambda } = require('./utils')
