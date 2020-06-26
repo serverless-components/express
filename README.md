@@ -14,7 +14,7 @@
 - [x] **Custom Domain + SSL** - Auto-configure a custom domain w/ a free AWS ACM SSL certificate.
 - [x] **Team Collaboration** - Collaborate with your teamates with shared state and outputs.
 - [x] **Built-in Monitoring** - Monitor your express app right from the Serverless Dashboard.
-- [x] **Auto-Generates An OpenAPI Spec** - A new OpenAPI spec is generated after each deployment.
+- [x] **(NEW) Auto-Generate An OpenAPI Spec On Each Deployment** - A new OpenAPI spec is generated after each deployment.
 
 <br/>
 
