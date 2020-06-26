@@ -14,6 +14,7 @@
 - [x] **Custom Domain + SSL** - Auto-configure a custom domain w/ a free AWS ACM SSL certificate.
 - [x] **Team Collaboration** - Collaborate with your teamates with shared state and outputs.
 - [x] **Built-in Monitoring** - Monitor your express app right from the Serverless Dashboard.
+- [x] **(NEW) Auto-Generate An OpenAPI Spec On Each Deployment** - A new OpenAPI spec is generated after each deployment.
 
 <br/>
 
@@ -40,7 +41,7 @@ Extra:
 
 &nbsp;
 
-### 1. Install
+### Install
 
 To get started with this component, install the latest version of the Serverless Framework:
 
@@ -48,7 +49,7 @@ To get started with this component, install the latest version of the Serverless
 $ npm install -g serverless
 ```
 
-### 2. Create
+### Create
 
 You can easily create a new express instance just by using the following command and template url.
 
@@ -81,7 +82,7 @@ You should now have a directory that looks something like this:
 |- .env
 ```
 
-### 3. Deploy
+### Deploy
 
 <img src="/assets/deploy-debug-demo.gif" height="250" align="right">
 
@@ -93,14 +94,14 @@ For more information on what's going on during deployment, you could specify the
 
 <br/>
 
-### 4. Configure
+### Configure
 
 The Express component is a zero configuration component, meaning that it'll work out of the box with no configuration and sane defaults. With that said, there are still a lot of optional configuration that you can specify.
 
 Here's a complete reference of the `serverless.yml` file for the express component:
 
 ```yml
-component: express               # (required) name of the component. In that case, it's express.
+component: express               # (required) name of the component. In that case, it's express.  You will want to pin this to a specific version in production via semantic versioning, like this: express@1.0.10.  Run 'serverless registry express' to see available versions.
 name: express-api                # (required) name of your express component instance.
 org: serverlessinc               # (optional) serverless dashboard org. default is the first org you created during signup.
 app: myApp                       # (optional) serverless dashboard app. default is the same as the name property.
@@ -120,11 +121,12 @@ inputs:
     - arn:aws:second:layer
   domain: api.serverless.com     # (optional) if the domain was registered via AWS Route53 on the account you are deploying to, it will automatically be set-up with your Express app's API Gateway, as well as a free AWS ACM SSL Cert.
   region: us-east-2              # (optional) aws region to deploy to. default is us-east-1.
+  inference: true                # (optional) (experimental) Initialize the express app on each deployment, extract an OpenAPI V.3 specification, and add it to he outputs.
 ```
 
 Once you've chosen your configuration, run `serverless deploy` again (or simply just `serverless`) to deploy your changes.
 
-### 5. Dev Mode
+### Dev Mode
 
 <img src="/assets/dev-demo.gif" height="250" align="right">
 
@@ -134,7 +136,7 @@ To enable dev mode, simply run `serverless dev` from within the directory contai
 
 Dev mode also enables live streaming logs from your express app so that you can see the results of your code changes right away on the CLI as they happen.
 
-### 6. Monitor
+### Monitor
 
 <img src="/assets/info-demo.gif" height="250" align="right">
 
@@ -142,7 +144,7 @@ Anytime you need to know more about your running express instance, you can run `
 
 It also shows you the status of your instance, when it was last deployed, and how many times it was deployed. To dig even deeper, you can pass the `--debug` flag to view the state of your component instance in case the deployment failed for any reason. 
 
-### 7. Remove
+### Remove
 
 <img src="/assets/remove-demo.gif" height="250" align="right">
 
@@ -231,3 +233,19 @@ You can slowly increment the percentage over time, just continue to re-deploy it
 If things aren't working, revert your code to the old code, remove the `traffic` configuration option, and deploy.
 
 If things are working, keep the new code, remove the `traffic` configuration option, and deploy.
+
+### Auto-Generate An OpenAPI V3 Specification From Your Express.js App
+
+Version 1.1.0 introduced experimental support for a new feature called *"Inference"*.
+
+Inference attempts to run your application on each deployment and extract information from it.
+
+The first feature Inference enables is detecting your API routes and converting them to the OpenAPI format, then adding them to the `outputs` of your Component Instance.
+
+Currently, Inference is disabled by default.  To enable it, add `inference: true` to your `serverless.yml` and ensure you are using the latest version of the Express coponent (>= 1.1.0).
+
+Given a lot of things can happen in your application upon starting it up, Inference does not work consistently.  If it runs into an error trying to start your application, it will try its best to pass through useful errors to you so you can address what's blocking it from working.
+
+Overall, an OpenAPI specification generated by default is very powerful.  This means you don't have to maintain that manually since it auto-updates on every deployment.  (That's what serverless is all about!)
+
+We will be adding many interesting features built on this.  Extracting your endpoints and putting them into a common format was merely hte first step...

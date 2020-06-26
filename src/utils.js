@@ -90,7 +90,7 @@ const getNakedDomain = (domain) => {
  * @param ${instance} instance - the component instance
  * @param ${object} config - the component config
  */
-const packageExpress = async (instance, inputs) => {
+const packageExpress = async (instance, inputs, outputs) => {
   console.log(`Packaging Express.js application...`)
 
   // unzip source zip file
@@ -101,6 +101,9 @@ const packageExpress = async (instance, inputs) => {
   // add shim to the source directory
   console.log(`Installing Express + AWS Lambda handler...`)
   copySync(path.join(__dirname, '_express'), path.join(sourceDirectory, '_express'))
+
+  // Attempt to infer data from the application
+  if (inputs.inference) { await infer(instance, inputs, outputs, sourceDirectory) }
 
   // add sdk to the source directory, add original handler
   console.log(`Installing Serverless Framework SDK...`)
@@ -121,6 +124,105 @@ const packageExpress = async (instance, inputs) => {
   instance.state.zipPath = zipPath
 
   return zipPath
+}
+
+/*
+ * Infer data from the Application by attempting to intiatlize it during deployment and extracting data.
+ *
+ * @param ${object} instance - the component instance
+ * @param ${object} inputs - the component inputs
+ */
+const infer = async (instance, inputs, outputs, sourceDirectory) => {
+
+  // Initialize application
+  let app
+  try {
+    app = require(path.join(sourceDirectory, './app.js'))
+  } catch (error) {
+    const msg = error.message
+    error.message = `Inference failed.  To fix this, you can turn off inferencing by specifying "inputs.inference: false" or fix the following issue: ${msg}`
+    throw error
+  }
+
+  try { await generateOpenAPI(instance, inputs, outputs, app) }
+  catch (error) {
+    const msg = error.message
+    error.message = `Inference was unable to generate an OpenAPI specification for your application.  To fix this, you can turn off inferencing by specifying "inputs.inference: false" or fix the following issue: ${msg}`
+    throw error
+  }
+}
+
+/*
+ * Generate an OpenAPI specification from the Application
+ *
+ * @param ${object} instance - the component instance
+ * @param ${object} inputs - the component inputs
+ */
+const generateOpenAPI = async (instance, inputs, outputs, app) => {
+
+  // Open API Version 3.0.3, found here: https://swagger.io/specification/
+  // TODO: This is not complete, but the pieces that do exist are accurate.
+  const openApi = {
+    openapi: '3.0.3',
+    info: {
+      // title: null,
+      // description: null,
+      version: '0.0.1'
+    },
+    paths: {},
+  }
+
+  // Parts of the OpenAPI spec that we may use these at a later date.
+  // For now, they are unincorporated.
+  const oaServersObject = {
+    url: null,
+    description: null,
+    variables: {}
+  }
+  const oaComponentsObject = {
+    schemas: {},
+    responses: {},
+    parameters: {},
+    examples: {},
+    requestBodies: {},
+    headers: {},
+    securitySchemes: {},
+    links: {},
+    callbacks: {}
+  }
+  const oaPathItem = {
+    description: null,
+    summary: null,
+    operationId: null,
+    responses: {}
+  }
+
+  if (app && app._router && app._router.stack && app._router.stack.length) {
+    app._router.stack.forEach((route) => {
+
+      // This array holds all middleware layers, which include routes and more
+      // First check if this 'layer' is an express route type, otherwise skip
+      if (!route.route) return
+
+      // Define key data
+      const ePath = route.route.path
+
+      if (['*', '/*'].indexOf(ePath) > -1) {
+        return
+      }
+
+      // Save path
+      openApi.paths[ePath] = openApi.paths[ePath] || {}
+
+      for (const method in route.route.methods) {
+        // Save method
+        openApi.paths[ePath][method] = {}
+      }
+    })
+  }
+
+  // Save to outputs
+  outputs.api = openApi
 }
 
 /*
