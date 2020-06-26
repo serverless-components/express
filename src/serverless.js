@@ -23,9 +23,15 @@ class Express extends Component {
    * @param {object} inputs
    */
   async deploy(inputs) {
-    // this error message assumes that the user is running via the CLI though...
+
+    const outputs = {}
+
+    // Defaults
+    inputs.inference = inputs.inference === true ? true : false
+
+    // Check credentials exist
     if (Object.keys(this.credentials.aws).length === 0) {
-      const msg = `Credentials not found. Make sure you have a .env file in the cwd. - Docs: https://git.io/JvArp`
+      const msg = `AWS Credentials not found. Make sure you have a .env file in the cwd. - Docs: https://git.io/JvArp`
       throw new Error(msg)
     }
 
@@ -42,7 +48,7 @@ class Express extends Component {
 
     const clients = getClients(this.credentials.aws, inputs.region)
 
-    await packageExpress(this, inputs)
+    await packageExpress(this, inputs, outputs)
 
     await Promise.all([
       createOrUpdateFunctionRole(this, inputs, clients),
@@ -63,7 +69,6 @@ class Express extends Component {
       }
     }
 
-    const outputs = {}
     outputs.url = this.state.url
 
     if (inputs.domain) {
