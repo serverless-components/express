@@ -1451,13 +1451,13 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
 
       // Customize the metric depending on its type
       if (cwMetric.Label === 'Count') {
-        metric.title = 'Requests'
+        metric.title = 'API Requests'
         metric.yDataSets[0].color = '#000000'
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
       }
       if (cwMetric.Label === '5xx') {
-        metric.title = 'Errors - 5xx'
+        metric.title = 'API Errors - 5xx'
         metric.statColor = '#FE5850'
         metric.yDataSets[0].color = '#FE5850'
 
@@ -1465,14 +1465,14 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
       }
       if (cwMetric.Label === '4xx') {
-        metric.title = 'Errors - 4xx'
+        metric.title = 'API Errors - 4xx'
         metric.statColor = '#FE5850'
         metric.yDataSets[0].color = '#FE5850'
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
       }
       if (cwMetric.Label === 'Latency') {
-        metric.title = 'Latency'
+        metric.title = 'API Latency'
         metric.statColor = '#029CE3'
         metric.yDataSets[0].color = '#029CE3'
         // Round Decimals
