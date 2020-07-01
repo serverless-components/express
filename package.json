@@ -5,12 +5,18 @@
   "license": "Apache",
   "scripts": {
     "lint": "eslint --ignore-path .gitignore .",
+    "lint:updated": "pipe-git-updated --ext=js -- eslint  --ignore-path .gitignore",
     "postinstall": "./scripts/install-nested-packages.js",
     "prettier-check": "prettier -c --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml}\"",
+    "prettier-check:updated": "pipe-git-updated --ext=css --ext=html --ext=js --ext=json --ext=yaml --ext=yml -- prettier -c",
     "prettify": "prettier --write --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml}\"",
+    "prettify:updated": "pipe-git-updated --ext=css --ext=html --ext=js --ext=json --ext=yaml --ext=yml -- prettier --write",
+    "publish": "components registry publish",
+    "publish:dev": "components registry publish --dev",
     "test": "jest --bail 1 --testEnvironment node ./test/integration.test.js"
   },
   "devDependencies": {
+    "@serverless/components": "^2.31.6",
     "@serverless/eslint-config": "^2.1.1",
     "@serverless/platform-client": "^0.24.0",
     "aws-sdk": "^2.704.0",
@@ -18,6 +24,7 @@
     "dotenv": "^8.2.0",
     "eslint": "^7.3.1",
     "eslint-plugin-import": "^2.21.2",
+    "git-list-updated": "^1.2.1",
     "jest": "^25.5.4",
     "prettier": "^2.0.5"
   },
