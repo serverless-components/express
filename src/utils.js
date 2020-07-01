@@ -1,5 +1,6 @@
 const path = require('path')
 const AWS = require('aws-sdk')
+const moment = require('moment')
 const https = require('https')
 const agent = new https.Agent({
   keepAlive: true
@@ -1210,6 +1211,42 @@ const removeDomain = async (instance, clients) => {
  * @param {*} rangeEnd MUST be a moment() object
  */
 const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, rangeEnd) => {
+
+  /**
+   * Validate inputs
+   */
+
+  // Validate: ISO8601 timestamps
+  if (!moment(rangeStart, moment.ISO_8601).isValid()) {
+    throw new Error(`Input "rangeStart" is not a valid IS)8601 timestamp: ${rangeStart}`)
+  }
+  if (!moment(rangeEnd, moment.ISO_8601).isValid()) {
+    throw new Error(`Input "rangeEnd" is not a valid IS)8601 timestamp: ${rangeEnd}`)
+  }
+
+  // Convert to Moment.js objects
+  rangeStart = moment(rangeStart)
+  rangeEnd = moment(rangeEnd)
+
+  // Validate: Start is before End
+  if (rangeStart.isAfter(rangeEnd)) {
+    throw new Error(`The "rangeStart" provided is after the "rangeEnd"`)
+  }
+
+  // Validate: End is not longer than 30 days
+  if (rangeStart.diff(rangeEnd, 'days') > 32) {
+    throw new Error(
+      `The range cannot be longer than 32 days.  The supplied range is: ${rangeStart.diff(
+        rangeEnd,
+        'days'
+      )}`
+    )
+  }
+
+  /**
+   * Create AWS STS Token
+   */
+
   const sts = new AWS.STS({ region })
 
   // Assume Role
@@ -1226,27 +1263,64 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   roleCreds.sessionToken = resAssume.Credentials.SessionToken
   const cloudwatch = new AWS.CloudWatch({ credentials: roleCreds, region })
 
-  // Determine Cloudwatch reporting period
+  /**
+   * Prepare input range data
+   * - Determine time unit (aka "period"), 1 minute, 1 hour, etc.
+   * - Pre-fill the response values w/ timestamps, since CloudWatch does not return empty bucket values.
+   */
+
   let period
-  const diffMinutes = rangeStart.diff(rangeEnd, 'minutes')
-  if (diffMinutes <= 16) {
-    // 16 mins
-    period = 60 // 1 min
-  } else if (diffMinutes <= 61) {
-    // 1 hour
-    period = 300 // 5 mins
-  } else if (diffMinutes <= 1500) {
-    // 24 hours
-    period = 3600 // hour
-  } else {
-    period = 86400 // day
+  let timeUnit
+  let timeBuckets
+  const xData = []
+  const yData = []
+  let diffMinutes = Math.ceil(rangeEnd.diff(rangeStart, 'minutes', true)) // 'true' returns decimals
+
+  // Length: 0 mins - 2 hours
+  if (diffMinutes <= 120) {
+    timeUnit = 'minute'
+    period = 60
+    rangeStart = rangeStart.startOf('minute')
+    rangeEnd = rangeEnd.endOf('minute')
+    timeBuckets = rangeEnd.diff(rangeStart, 'minutes')
+    // Create values
+    for (let i = 0; i <= timeBuckets; i++) {
+      xData.push(rangeStart.clone().add(i, 'minutes').toISOString())
+      yData.push(0)
+    }
+  }
+  // Length: 2 hours - 48 hours
+  else if (diffMinutes > 120 && diffMinutes <= 2880) {
+    timeUnit = 'hour'
+    period = 3600
+    rangeStart = rangeStart.startOf('hour')
+    rangeEnd = rangeEnd.endOf('hour')
+    timeBuckets = rangeEnd.diff(rangeStart, 'hours')
+    // Create values
+    for (let i = 0; i <= timeBuckets; i++) {
+      xData.push(rangeStart.clone().add(i, 'hours').toISOString())
+      yData.push(0)
+    }
+  }
+  // Length: 48 hours to 32 days
+  else if (diffMinutes > 2880) {
+    timeUnit = 'day'
+    period = 86400
+    rangeStart = rangeStart.startOf('day')
+    rangeEnd = rangeEnd.endOf('day')
+    timeBuckets = rangeEnd.diff(rangeStart, 'days')
+    // Create values
+    for (let i = 0; i <= timeBuckets; i++) {
+      xData.push(rangeStart.clone().add(i, 'days').toISOString())
+      yData.push(0)
+    }
   }
 
   // Prepare CloudWatch queries
   const params = {
     StartTime: rangeStart.unix(),
     EndTime: rangeEnd.unix(),
-    // NextToken: null,
+    // NextToken: null, // No need for this since we are restricting value counts.
     ScanBy: 'TimestampAscending',
     MetricDataQueries: [
       {
@@ -1342,6 +1416,10 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
 
   const data = await cloudwatch.getMetricData(params).promise()
 
+  /**
+   * Prepare response data
+   */
+
   const result = {
     rangeStart: rangeStart.toISOString(),
     rangeEnd: rangeEnd.toISOString(),
@@ -1351,49 +1429,60 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
   // Format Results into standard format
   if (data && data.MetricDataResults) {
     data.MetricDataResults.forEach((cwMetric) => {
+
       // Create metric
       const metric = {}
-      metric.type = 'bar'
+      metric.type = 'bar-v1'
+      metric.stat = null
+      metric.statText = null
+      metric.statColor = '#000000'
+      metric.xData = xData.slice()
+      metric.yDataSets = [{}]
+      metric.yDataSets[0].yData = yData.slice()
 
-      // Title the metric
+      // Add Values
+      cwMetric.Timestamps.forEach((cwVal, i) => {
+        metric.xData.forEach((xVal, i2) => {
+          if (moment(xVal).isSame(cwVal)) {
+            metric.yDataSets[0].yData[i2] = cwMetric.Values[i]
+          }
+        })
+      })
+
+      // Customize the metric depending on its type
       if (cwMetric.Label === 'Count') {
         metric.title = 'Requests'
+        metric.yDataSets[0].color = '#000000'
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
       }
       if (cwMetric.Label === '5xx') {
         metric.title = 'Errors - 5xx'
-        metric.color = 'red'
+        metric.statColor = '#FE5850'
+        metric.yDataSets[0].color = '#FE5850'
+
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
       }
       if (cwMetric.Label === '4xx') {
         metric.title = 'Errors - 4xx'
-        metric.color = 'red'
+        metric.statColor = '#FE5850'
+        metric.yDataSets[0].color = '#FE5850'
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
       }
       if (cwMetric.Label === 'Latency') {
         metric.title = 'Latency'
-        metric.color = 'blue'
-      }
-
-      // Format metric
-      metric.values = []
-      metric.total = 0
-      cwMetric.Timestamps.forEach((val, i) => {
-        if (!metric.values[i]) {
-          metric.values[i] = { timestamp: val }
-        } else {
-          metric.values[i].timestamp = val
-        }
-      })
-      cwMetric.Values.forEach((val, i) => {
-        if (!metric.values[i]) {
-          metric.values[i] = { value: val }
-        } else {
-          metric.values[i].value = val
-        }
-        metric.total = Math.round(metric.total + val)
-      })
-
-      // Don't add total for latency, only the average
-      if (cwMetric.Label === 'Latency') {
-        metric.total = Math.round(metric.total / cwMetric.Values.length)
+        metric.statColor = '#029CE3'
+        metric.yDataSets[0].color = '#029CE3'
+        // Round Decimals
+        metric.yDataSets[0].yData = metric.yDataSets[0].yData.map((val) => Math.ceil(val))
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current += previous)
+        // Get Average
+        const filtered = metric.yDataSets[0].yData.filter(x => x > 0)
+        metric.stat = Math.ceil(metric.stat / filtered.length)
+        metric.statText = 'ms'
       }
 
       // Add metric

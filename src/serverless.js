@@ -1,5 +1,4 @@
 const { Component } = require('@serverless/core')
-const moment = require('moment')
 const {
   generateId,
   getClients,
@@ -105,24 +104,6 @@ class Express extends Component {
     // Validate
     if (!inputs.rangeStart || !inputs.rangeEnd) {
       throw new Error('rangeStart and rangeEnd are require inputs')
-    }
-
-    inputs.rangeStart = moment(inputs.rangeStart)
-    inputs.rangeEnd = moment(inputs.rangeEnd)
-
-    // Validate: Start is before End
-    if (inputs.rangeStart.isAfter(inputs.rangeEnd)) {
-      throw new Error(`The rangeStart provided is after the rangeEnd`)
-    }
-
-    // Validate: End is not longer than 30 days
-    if (inputs.rangeStart.diff(inputs.rangeEnd, 'days') >= 31) {
-      throw new Error(
-        `The range cannot be longer than 30 days.  The supplied range is: ${inputs.rangeStart.diff(
-          inputs.rangeEnd,
-          'days'
-        )}`
-      )
     }
 
     const result = await getMetrics(
