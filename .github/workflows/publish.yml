@@ -1,0 +1,50 @@
+# Version tags only
+
+name: Publish
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+env:
+  FORCE_COLOR: 1
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Retrieve node_modules from cache
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: node-modules-v14-${{ runner.os }}-refs/heads/master-${{ hashFiles('package.json') }}
+      - name: Retrieve src/node_modules from cache
+        uses: actions/cache@v1
+        with:
+          path: src/node_modules
+          key: src/node-modules-v14-${{ runner.os }}-refs/heads/master-${{ hashFiles('src/package*.json') }}
+      - name: Retrieve src/_express/node_modules from cache
+        uses: actions/cache@v1
+        with:
+          path: src/_express/node_modules
+          key: src/_express/node-modules-v14-${{ runner.os }}-refs/heads/master-${{ hashFiles('src/_express/package*.json') }}
+      - name: Retrieve src/_src/node_modules from cache
+        uses: actions/cache@v1
+        with:
+          path: src/_src/node_modules
+          key: src/_src/node-modules-v14-${{ runner.os }}-refs/heads/master-${{ hashFiles('src/_src/package*.json') }}
+
+      - name: Install Node.js and npm
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+
+      - name: Publish new version
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+        run: npm run publish
