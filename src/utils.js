@@ -1110,7 +1110,7 @@ const removeApiMapping = async (instance, clients) => {
     return;
   }
 
-  console.log(`Removing API Mapping with ID ${instance.state.apiMappingId}`);
+  console.log(`Removing API Mapping with ID ${instance.state.apiMappingId} and domain ${instance.state.domain}`);
 
   const params = {
     ApiMappingId: instance.state.apiMappingId,
