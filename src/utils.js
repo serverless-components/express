@@ -288,6 +288,7 @@ const createLambda = async (instance, inputs, clients) => {
     params.Layers = inputs.layers;
   }
 
+  console.log(`Creating AWS Lambda...`);
   params.Code.ZipFile = await readFile(instance.state.zipPath);
 
   try {
@@ -296,6 +297,7 @@ const createLambda = async (instance, inputs, clients) => {
     instance.state.lambdaArn = res.FunctionArn;
     instance.state.lambdaVersion = res.Version;
   } catch (e) {
+    console.log(`Unable to create AWS Lambda due to: ${e.message}`)
     if (
       e.message.includes('The role defined for the function cannot be assumed by Lambda') ||
       e.message.includes(
