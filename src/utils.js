@@ -1108,7 +1108,7 @@ const removeLambda = async (instance, clients) => {
  * Remove Mapping between API Gateway Custom Domain & HTTP API.  This has to be removed before API Gateway Custom Domain can be deleted.
  */
 const removeApiMapping = async (instance, clients) => {
-  if (!instance.state.apiMappingId) {
+  if (!instance.state.apiMappingId || !instance.state.domain) {
     return;
   }
 
