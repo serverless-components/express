@@ -288,7 +288,7 @@ const createLambda = async (instance, inputs, clients) => {
     params.Layers = inputs.layers;
   }
 
-  console.log(`Creating AWS Lambda...`);
+  console.log('Creating AWS Lambda...');
   params.Code.ZipFile = await readFile(instance.state.zipPath);
 
   try {
@@ -297,7 +297,7 @@ const createLambda = async (instance, inputs, clients) => {
     instance.state.lambdaArn = res.FunctionArn;
     instance.state.lambdaVersion = res.Version;
   } catch (e) {
-    console.log(`Unable to create AWS Lambda due to: ${e.message}`)
+    console.log(`Unable to create AWS Lambda due to: ${e.message}`);
     if (
       e.message.includes('The role defined for the function cannot be assumed by Lambda') ||
       e.message.includes(
@@ -1112,7 +1112,9 @@ const removeApiMapping = async (instance, clients) => {
     return;
   }
 
-  console.log(`Removing API Mapping with ID ${instance.state.apiMappingId} and domain ${instance.state.domain}`);
+  console.log(
+    `Removing API Mapping with ID ${instance.state.apiMappingId} and domain ${instance.state.domain}`
+  );
 
   const params = {
     ApiMappingId: instance.state.apiMappingId,
@@ -1458,7 +1460,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
           Period: period,
           Stat: 'Average',
         },
-      }
+      },
     ],
   };
 
@@ -1500,7 +1502,8 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
       // Total Requests
       if (cwMetric.Label === 'Count') {
         metric.title = 'API Requests';
-        metric.description = 'The total number API requests in a given period to your AWS HTTP API.'
+        metric.description =
+          'The total number API requests in a given period to your AWS HTTP API.';
         metric.yDataSets[0].color = '#000000';
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
@@ -1508,7 +1511,8 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
       // Errors - 5xx
       if (cwMetric.Label === '5xx') {
         metric.title = 'API Errors - 5xx';
-        metric.description = 'The number of serverless-side internal errors captured in a given period from your AWS HTTP API most likely generated as a result of issues within your code.';
+        metric.description =
+          'The number of serverless-side internal errors captured in a given period from your AWS HTTP API most likely generated as a result of issues within your code.';
         metric.statColor = '#FE5850';
         metric.yDataSets[0].color = '#FE5850';
 
@@ -1518,7 +1522,8 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
       // Errors - 4xx
       if (cwMetric.Label === '4xx') {
         metric.title = 'API Errors - 4xx';
-        metric.description = 'The number of serverless-side client-generated errors captured in a given period from your AWS HTTP API.';
+        metric.description =
+          'The number of serverless-side client-generated errors captured in a given period from your AWS HTTP API.';
         metric.statColor = '#FE5850';
         metric.yDataSets[0].color = '#FE5850';
         // Get Sum
@@ -1527,7 +1532,8 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
       // Latency
       if (cwMetric.Label === 'Latency') {
         metric.title = 'API Latency';
-        metric.description = 'The time between when AWS HTTP API receives a request from a client and when it returns a response to the client. The latency includes the integration latency and other AWS HTTP API overhead.';
+        metric.description =
+          'The time between when AWS HTTP API receives a request from a client and when it returns a response to the client. The latency includes the integration latency and other AWS HTTP API overhead.';
         metric.statColor = '#029CE3';
         metric.yDataSets[0].color = '#029CE3';
         // Round Decimals
@@ -1542,7 +1548,8 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
       // Integration Latency
       if (cwMetric.Label === 'IntegrationLatency') {
         metric.title = 'API Integration Latency';
-        metric.description = 'The time between when AWS HTTP API relays a request to the backend and when it receives a response from the backend.';
+        metric.description =
+          'The time between when AWS HTTP API relays a request to the backend and when it receives a response from the backend.';
         metric.statColor = '#029CE3';
         metric.yDataSets[0].color = '#029CE3';
         // Round Decimals
@@ -1562,8 +1569,8 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         metric.yDataSets[0].color = '#000000';
         // Convert to kilobytes
         metric.yDataSets[0].yData = metric.yDataSets[0].yData.map((val) => {
-          let kb = val / Math.pow(1024, 1)
-          return Math.round(kb * 100) / 100
+          const kb = val / Math.pow(1024, 1);
+          return Math.round(kb * 100) / 100;
         });
         // Get Sum of bytes
         metric.statText = 'kb';
