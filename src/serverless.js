@@ -112,6 +112,7 @@ class Express extends Component {
       this.state.region,
       this.state.metaRoleArn,
       this.state.apiId,
+      this.state.lambdaName,
       inputs.rangeStart,
       inputs.rangeEnd
     );

@@ -1221,7 +1221,15 @@ const removeDomain = async (instance, clients) => {
  * @param {*} rangeStart MUST be a moment() object
  * @param {*} rangeEnd MUST be a moment() object
  */
-const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, rangeEnd) => {
+const getMetrics = async (
+  credentials,
+  region,
+  roleArn,
+  apiId,
+  functionName,
+  rangeStart,
+  rangeEnd
+) => {
   /**
    * Validate inputs
    */
@@ -1330,7 +1338,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
     ScanBy: 'TimestampAscending',
     MetricDataQueries: [
       {
-        Id: 'metric_alias1',
+        Id: 'api_requests',
         ReturnData: true,
         MetricStat: {
           Metric: {
@@ -1352,7 +1360,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         },
       },
       {
-        Id: 'metric_alias2',
+        Id: 'api_errors_500',
         ReturnData: true,
         MetricStat: {
           Metric: {
@@ -1374,7 +1382,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         },
       },
       {
-        Id: 'metric_alias3',
+        Id: 'api_errors_400',
         ReturnData: true,
         MetricStat: {
           Metric: {
@@ -1396,7 +1404,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         },
       },
       {
-        Id: 'metric_alias4',
+        Id: 'api_latency',
         ReturnData: true,
         MetricStat: {
           Metric: {
@@ -1418,7 +1426,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         },
       },
       {
-        Id: 'metric_alias5',
+        Id: 'api_data_processed',
         ReturnData: true,
         MetricStat: {
           Metric: {
@@ -1440,7 +1448,7 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         },
       },
       {
-        Id: 'metric_alias6',
+        Id: 'api_integration_latency',
         ReturnData: true,
         MetricStat: {
           Metric: {
@@ -1461,11 +1469,83 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
           Stat: 'Average',
         },
       },
+      {
+        Id: 'function_invocations',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: 'Invocations',
+            Namespace: 'AWS/Lambda',
+            Dimensions: [
+              {
+                Name: 'FunctionName',
+                Value: functionName,
+              },
+            ],
+          },
+          Period: period,
+          Stat: 'Sum',
+        },
+      },
+      {
+        Id: 'function_errors',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: 'Errors',
+            Namespace: 'AWS/Lambda',
+            Dimensions: [
+              {
+                Name: 'FunctionName',
+                Value: functionName,
+              },
+            ],
+          },
+          Period: period,
+          Stat: 'Sum',
+        },
+      },
+      {
+        Id: 'function_throttles',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: 'Throttles',
+            Namespace: 'AWS/Lambda',
+            Dimensions: [
+              {
+                Name: 'FunctionName',
+                Value: functionName,
+              },
+            ],
+          },
+          Period: period,
+          Stat: 'Sum',
+        },
+      },
+      {
+        Id: 'function_duration',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: 'Duration',
+            Namespace: 'AWS/Lambda',
+            Dimensions: [
+              {
+                Name: 'FunctionName',
+                Value: functionName,
+              },
+            ],
+          },
+          Period: period,
+          Stat: 'Average',
+        },
+      },
     ],
   };
 
   const data = await cloudwatch.getMetricData(params).promise();
-
+  console.log(data.MetricDataResults);
   /**
    * Prepare response data
    */
@@ -1498,18 +1578,23 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         });
       });
 
-      // Customize the metric depending on its type
+      /**
+       * Customize the metric depending on its type
+       */
+
       // Total Requests
-      if (cwMetric.Label === 'Count') {
+      if (cwMetric.Id === 'api_requests') {
         metric.title = 'API Requests';
         metric.description =
           'The total number API requests in a given period to your AWS HTTP API.';
         metric.yDataSets[0].color = '#000000';
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Add metric
+        result.metrics.push(metric);
       }
       // Errors - 5xx
-      if (cwMetric.Label === '5xx') {
+      if (cwMetric.Id === 'api_errors_500') {
         metric.title = 'API Errors - 5xx';
         metric.description =
           'The number of serverless-side internal errors captured in a given period from your AWS HTTP API most likely generated as a result of issues within your code.';
@@ -1518,9 +1603,11 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
 
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Add metric
+        result.metrics.push(metric);
       }
       // Errors - 4xx
-      if (cwMetric.Label === '4xx') {
+      if (cwMetric.Id === 'api_errors_400') {
         metric.title = 'API Errors - 4xx';
         metric.description =
           'The number of serverless-side client-generated errors captured in a given period from your AWS HTTP API.';
@@ -1528,9 +1615,11 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         metric.yDataSets[0].color = '#FE5850';
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Add metric
+        result.metrics.push(metric);
       }
       // Latency
-      if (cwMetric.Label === 'Latency') {
+      if (cwMetric.Id === 'api_latency') {
         metric.title = 'API Latency';
         metric.description =
           'The time between when AWS HTTP API receives a request from a client and when it returns a response to the client. The latency includes the integration latency and other AWS HTTP API overhead.';
@@ -1544,9 +1633,11 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         const filtered = metric.yDataSets[0].yData.filter((x) => x > 0);
         metric.stat = Math.ceil(metric.stat / filtered.length);
         metric.statText = 'ms';
+        // Add metric
+        result.metrics.push(metric);
       }
       // Integration Latency
-      if (cwMetric.Label === 'IntegrationLatency') {
+      if (cwMetric.Id === 'api_integration_latency') {
         metric.title = 'API Integration Latency';
         metric.description =
           'The time between when AWS HTTP API relays a request to the backend and when it receives a response from the backend.';
@@ -1560,9 +1651,11 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         const filtered = metric.yDataSets[0].yData.filter((x) => x > 0);
         metric.stat = Math.ceil(metric.stat / filtered.length);
         metric.statText = 'ms';
+        // Add metric
+        result.metrics.push(metric);
       }
       // Data Processed in Kilobytes
-      if (cwMetric.Label === 'DataProcessed') {
+      if (cwMetric.Id === 'api_data_processed') {
         metric.title = 'API Data Processed';
         metric.description = 'The amount of data processed in kilobytes.';
         metric.statColor = '#000000';
@@ -1575,10 +1668,60 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         // Get Sum of bytes
         metric.statText = 'kb';
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Add metric
+        result.metrics.push(metric);
       }
-
-      // Add metric
-      result.metrics.push(metric);
+      // Function Invocations
+      if (cwMetric.Id === 'function_invocations') {
+        metric.title = 'Function Invocations';
+        metric.description =
+          'The number of times your function code is executed, including successful executions and executions that result in a function error. Invocations are not recorded if the invocation request is throttled or otherwise resulted in an invocation error. This equals the number of requests billed.';
+        metric.yDataSets[0].color = '#000000';
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Add metric
+        result.metrics.push(metric);
+      }
+      // Function Errors
+      if (cwMetric.Id === 'function_errors') {
+        metric.title = 'Function Errors';
+        metric.description =
+          'The number of invocations that result in a function error. Function errors include exceptions thrown by your code and exceptions thrown by the Lambda runtime. The runtime returns errors for issues such as timeouts and configuration errors. To calculate the error rate, divide the value of Errors by the value of Invocations.';
+        metric.yDataSets[0].color = '#FE5850';
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Add metric
+        result.metrics.push(metric);
+      }
+      // Function Throttles
+      if (cwMetric.Id === 'function_throttles') {
+        metric.title = 'Function Throttles';
+        metric.description =
+          'The number of invocation requests that are throttled. When all function instances are processing requests and no concurrency is available to scale up, Lambda rejects additional requests with TooManyRequestsException. Throttled requests and other invocation errors do not count as Invocations or Errors.';
+        metric.yDataSets[0].color = '#FE5850';
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Add metric
+        result.metrics.push(metric);
+      }
+      // Function Latency
+      if (cwMetric.Id === 'function_duration') {
+        metric.title = 'Function Latency';
+        metric.description =
+          'The amount of time that your function code spends processing an event. For the first event processed by an instance of your function, this includes initialization time. The billed duration for an invocation is the value of Duration rounded up to the nearest 100 milliseconds.';
+        metric.yDataSets[0].color = '#029CE3';
+        metric.statColor = '#029CE3';
+        metric.statText = 'ms';
+        // Round Decimals
+        metric.yDataSets[0].yData = metric.yDataSets[0].yData.map((val) => Math.ceil(val));
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Get Average
+        const filtered = metric.yDataSets[0].yData.filter((x) => x > 0);
+        metric.stat = Math.ceil(metric.stat / filtered.length);
+        // Add metric
+        result.metrics.push(metric);
+      }
     });
   }
 
