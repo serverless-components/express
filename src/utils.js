@@ -1415,6 +1415,50 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
           Stat: 'Average',
         },
       },
+      {
+        Id: 'metric_alias5',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: 'DataProcessed',
+            Namespace: 'AWS/ApiGateway',
+            Dimensions: [
+              {
+                Name: 'Stage',
+                Value: '$default',
+              },
+              {
+                Name: 'ApiId',
+                Value: apiId,
+              },
+            ],
+          },
+          Period: period,
+          Stat: 'Sum',
+        },
+      },
+      {
+        Id: 'metric_alias6',
+        ReturnData: true,
+        MetricStat: {
+          Metric: {
+            MetricName: 'IntegrationLatency',
+            Namespace: 'AWS/ApiGateway',
+            Dimensions: [
+              {
+                Name: 'Stage',
+                Value: '$default',
+              },
+              {
+                Name: 'ApiId',
+                Value: apiId,
+              },
+            ],
+          },
+          Period: period,
+          Stat: 'Average',
+        },
+      }
     ],
   };
 
@@ -1453,29 +1497,37 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
       });
 
       // Customize the metric depending on its type
+      // Total Requests
       if (cwMetric.Label === 'Count') {
         metric.title = 'API Requests';
+        metric.description = 'The total number API requests in a given period to your AWS HTTP API.'
         metric.yDataSets[0].color = '#000000';
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
       }
+      // Errors - 5xx
       if (cwMetric.Label === '5xx') {
         metric.title = 'API Errors - 5xx';
+        metric.description = 'The number of serverless-side internal errors captured in a given period from your AWS HTTP API most likely generated as a result of issues within your code.';
         metric.statColor = '#FE5850';
         metric.yDataSets[0].color = '#FE5850';
 
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
       }
+      // Errors - 4xx
       if (cwMetric.Label === '4xx') {
         metric.title = 'API Errors - 4xx';
+        metric.description = 'The number of serverless-side client-generated errors captured in a given period from your AWS HTTP API.';
         metric.statColor = '#FE5850';
         metric.yDataSets[0].color = '#FE5850';
         // Get Sum
         metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
       }
+      // Latency
       if (cwMetric.Label === 'Latency') {
         metric.title = 'API Latency';
+        metric.description = 'The time between when AWS HTTP API receives a request from a client and when it returns a response to the client. The latency includes the integration latency and other AWS HTTP API overhead.';
         metric.statColor = '#029CE3';
         metric.yDataSets[0].color = '#029CE3';
         // Round Decimals
@@ -1486,6 +1538,36 @@ const getMetrics = async (credentials, region, roleArn, apiId, rangeStart, range
         const filtered = metric.yDataSets[0].yData.filter((x) => x > 0);
         metric.stat = Math.ceil(metric.stat / filtered.length);
         metric.statText = 'ms';
+      }
+      // Integration Latency
+      if (cwMetric.Label === 'IntegrationLatency') {
+        metric.title = 'API Integration Latency';
+        metric.description = 'The time between when AWS HTTP API relays a request to the backend and when it receives a response from the backend.';
+        metric.statColor = '#029CE3';
+        metric.yDataSets[0].color = '#029CE3';
+        // Round Decimals
+        metric.yDataSets[0].yData = metric.yDataSets[0].yData.map((val) => Math.ceil(val));
+        // Get Sum
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
+        // Get Average
+        const filtered = metric.yDataSets[0].yData.filter((x) => x > 0);
+        metric.stat = Math.ceil(metric.stat / filtered.length);
+        metric.statText = 'ms';
+      }
+      // Data Processed in Kilobytes
+      if (cwMetric.Label === 'DataProcessed') {
+        metric.title = 'API Data Processed';
+        metric.description = 'The amount of data processed in kilobytes.';
+        metric.statColor = '#000000';
+        metric.yDataSets[0].color = '#000000';
+        // Convert to kilobytes
+        metric.yDataSets[0].yData = metric.yDataSets[0].yData.map((val) => {
+          let kb = val / Math.pow(1024, 1)
+          return Math.round(kb * 100) / 100
+        });
+        // Get Sum of bytes
+        metric.statText = 'kb';
+        metric.stat = metric.yDataSets[0].yData.reduce((previous, current) => current + previous);
       }
 
       // Add metric
