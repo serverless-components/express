@@ -27,7 +27,7 @@ Check out the **[Serverless Fullstack Application](https://github.com/serverless
 Get Started:
 
 1. [**Install**](#1-install)
-2. [**Init**](#2-init)
+2. [**Initialize**](#2-initialize)
 3. [**Deploy**](#3-deploy)
 4. [**Configure**](#4-configure)
 5. [**Dev Mode**](#5-dev-mode)
@@ -49,7 +49,7 @@ To get started with this component, install the latest version of the Serverless
 $ npm install -g serverless
 ```
 
-### Init
+### Initialize
 
 The easiest way to start using the express component is by initializing the `express-starter` template. Just run this command:
 
