@@ -27,7 +27,7 @@ Check out the **[Serverless Fullstack Application](https://github.com/serverless
 Get Started:
 
 1. [**Install**](#1-install)
-2. [**Create**](#2-create)
+2. [**Init**](#2-init)
 3. [**Deploy**](#3-deploy)
 4. [**Configure**](#4-configure)
 5. [**Dev Mode**](#5-dev-mode)
@@ -49,22 +49,16 @@ To get started with this component, install the latest version of the Serverless
 $ npm install -g serverless
 ```
 
-### Create
+### Init
 
-You can easily create a new express instance just by using the following command and template url.
-
-```
-$ serverless create --template-url https://github.com/serverless/components/tree/master/templates/express
-$ cd express
-```
-
-Just like any express app, don't forget to install the express dependencies:
+The easiest way to start using the express component is by initializing the `express-starter` template. Just run this command:
 
 ```
-$ npm install
+$ serverless init express-starter
+$ cd express-starter
 ```
 
-Then, create a new `.env` file in the root of the `express` directory right next to `serverless.yml`, and add your AWS access keys:
+This will also run `npm install` for you, and create an empty `.env` file. Open that `.env` file and can add in your AWS credentials
 
 ```
 # .env
