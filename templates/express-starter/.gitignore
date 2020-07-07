@@ -1,0 +1,6 @@
+.DS_Store
+jest/*
+coverage
+node_modules
+build/
+.env*
