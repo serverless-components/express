@@ -10,7 +10,6 @@ jest.setTimeout(60000);
 // the yaml file we're testing against
 const instanceYaml = {
   org: 'serverlessinc',
-  app: 'myApp',
   component: 'express@dev',
   name: `express-integration-tests-${generateId()}`,
   stage: 'dev',
