@@ -2,8 +2,7 @@
 
 const path = require('path');
 // eslint-disable-next-line import/no-extraneous-dependencies
-const AWS = require(`@serverless/aws-sdk`);
-const moment = require('moment');
+const AWS = require('@serverless/aws-sdk');
 const https = require('https');
 
 const agent = new https.Agent({
@@ -1230,7 +1229,6 @@ const getMetrics = async (
   rangeStart,
   rangeEnd
 ) => {
-
   /**
    * Create AWS STS Token via the meta role that is deployed with the Express Component
    */
@@ -1258,8 +1256,8 @@ const getMetrics = async (
     {
       type: 'aws_lambda',
       functionName,
-    }
-  ]
+    },
+  ];
 
   return await AWS.utils.getMetrics({
     credentials: roleCreds,

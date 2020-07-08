@@ -7,8 +7,6 @@ const { sleep, generateId, getCredentials, getServerlessSdk, getLambda } = requi
 // set enough timeout for deployment to finish
 jest.setTimeout(60000);
 
-
-
 // the yaml file we're testing against
 const instanceYaml = {
   org: 'serverlessinc',
