@@ -3,6 +3,7 @@
   "author": "Serverless, Inc.",
   "license": "Apache",
   "dependencies": {
+    "@serverless/aws-sdk": "^6.1.0",
     "fs-extra": "^8.1.0",
     "moment": "^2.27.0"
   }
