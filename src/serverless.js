@@ -28,7 +28,7 @@ class Express extends Component {
     const outputs = {};
 
     // Defaults
-    inputs.inference = inputs.inference === true;
+    inputs.openApi = inputs.openApi === true;
 
     // Check credentials exist
     if (Object.keys(this.credentials.aws).length === 0) {
@@ -107,9 +107,11 @@ class Express extends Component {
       throw new Error('rangeStart and rangeEnd are require inputs');
     }
 
+    const clients = getClients(this.credentials.aws, inputs.region);
+
     const result = await getMetrics(
-      this.credentials.aws,
-      this.state.region,
+      clients,
+      inputs.region,
       this.state.metaRoleArn,
       this.state.apiId,
       this.state.lambdaName,

@@ -34,8 +34,5 @@
     "rules": {
       "no-console": "off"
     }
-  },
-  "dependencies": {
-    "@serverless/aws-sdk": "^6.0.0"
   }
 }
