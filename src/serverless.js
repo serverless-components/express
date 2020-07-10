@@ -33,7 +33,7 @@ class Express extends Component {
     // Check credentials exist
     if (Object.keys(this.credentials.aws).length === 0) {
       const msg =
-        'AWS Credentials not found. Make sure you have a .env file in the cwd. - Docs: https://git.io/JvArp';
+        'AWS Credentials not found. Make sure you have a .env file in the current working directory. - Docs: https://git.io/JvArp';
       throw new Error(msg);
     }
 
@@ -68,6 +68,8 @@ class Express extends Component {
     } else if (this.state.domain) {
       delete this.state.domain;
     }
+
+    this.state.url = this.state.domain || this.state.apiGatewayUrl; // Always prefer custom domain
 
     outputs.url = this.state.url;
 

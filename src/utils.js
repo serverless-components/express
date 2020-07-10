@@ -883,6 +883,11 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
 
   if (apiId) {
     console.log(`API found. Updating API with ID: ${instance.state.apiId}...`);
+
+    // Ensure this is on state
+    instance.state.apiId = apiId;
+    instance.state.apiGatewayUrl = `https://${instance.state.apiId}.execute-api.${instance.state.region}.amazonaws.com`;
+
     const updateApiParams = {
       ApiId: apiId,
       Description: inputs.description || getDefaultDescription(instance),
@@ -913,7 +918,7 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
 
   console.log(`API ${instance.state.apiName} created with ID ${instance.state.apiId}`);
 
-  instance.state.url = `https://${instance.state.apiId}.execute-api.${instance.state.region}.amazonaws.com`;
+  instance.state.apiGatewayUrl = `https://${instance.state.apiId}.execute-api.${instance.state.region}.amazonaws.com`;
 
   // Give newly created API permission to call Lambda
   await addPermission(instance, inputs, clients);
@@ -1124,14 +1129,7 @@ const removeDomain = async (instance, clients) => {
  * @param {*} rangeStart MUST be a moment() object
  * @param {*} rangeEnd MUST be a moment() object
  */
-const getMetrics = async (
-  region,
-  metaRoleArn,
-  apiId,
-  functionName,
-  rangeStart,
-  rangeEnd
-) => {
+const getMetrics = async (region, metaRoleArn, apiId, functionName, rangeStart, rangeEnd) => {
   /**
    * Create AWS STS Token via the meta role that is deployed with the Express Component
    */
@@ -1142,7 +1140,7 @@ const getMetrics = async (
   assumeParams.RoleArn = metaRoleArn;
   assumeParams.DurationSeconds = 900;
 
-  const sts = new AWS.STS({ region })
+  const sts = new AWS.STS({ region });
   const resAssume = await sts.assumeRole(assumeParams).promise();
 
   const roleCreds = {};
