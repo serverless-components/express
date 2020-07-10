@@ -107,11 +107,8 @@ class Express extends Component {
       throw new Error('rangeStart and rangeEnd are require inputs');
     }
 
-    const clients = getClients(this.credentials.aws, inputs.region);
-
     const result = await getMetrics(
-      clients,
-      inputs.region,
+      this.state.region,
       this.state.metaRoleArn,
       this.state.apiId,
       this.state.lambdaName,

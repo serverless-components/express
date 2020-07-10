@@ -1125,7 +1125,6 @@ const removeDomain = async (instance, clients) => {
  * @param {*} rangeEnd MUST be a moment() object
  */
 const getMetrics = async (
-  clients,
   region,
   metaRoleArn,
   apiId,
@@ -1143,7 +1142,8 @@ const getMetrics = async (
   assumeParams.RoleArn = metaRoleArn;
   assumeParams.DurationSeconds = 900;
 
-  const resAssume = await clients.sts.assumeRole(assumeParams).promise();
+  const sts = new AWS.STS({ region })
+  const resAssume = await sts.assumeRole(assumeParams).promise();
 
   const roleCreds = {};
   roleCreds.accessKeyId = resAssume.Credentials.AccessKeyId;
