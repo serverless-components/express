@@ -72,6 +72,7 @@ class Express extends Component {
     this.state.url = this.state.domain || this.state.apiGatewayUrl; // Always prefer custom domain
 
     outputs.url = this.state.url;
+    outputs.apiGatewayUrl = this.state.apiGatewayUrl;
 
     if (inputs.domain) {
       // if domain is not in aws account, show the regional url
