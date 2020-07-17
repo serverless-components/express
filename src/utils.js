@@ -1126,8 +1126,8 @@ const removeDomain = async (instance, clients) => {
 /**
  * Get metrics from cloudwatch
  * @param {*} clients
- * @param {*} rangeStart MUST be a moment() object
- * @param {*} rangeEnd MUST be a moment() object
+ * @param {*} rangeStart
+ * @param {*} rangeEnd
  */
 const getMetrics = async (region, metaRoleArn, apiId, functionName, rangeStart, rangeEnd) => {
   /**

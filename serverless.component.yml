@@ -1,5 +1,5 @@
 name: express
-version: 1.5.3
+version: 1.5.7
 author: eahefnawy
 org: serverlessinc
 description: Deploys a serverless Express.js application onto AWS Lambda and AWS HTTP API.
@@ -8,3 +8,96 @@ repo: https://github.com/serverless-components/express
 readme: ''
 license: MIT
 main: ./src
+
+providers:
+  - aws
+
+actions:
+  # deploy
+  deploy:
+    definition: Deploy your Express.js application to AWS Lambda, AWS HTTP API and more.
+    inputs:
+      - name: src
+        type: src
+        description: The folder containing the source code of your Express.js application.
+
+      - name: memory
+        type: number
+        description: The memory size of your AWS Lambda function.
+        default: 1024
+        allow:
+          - 128
+          - 192
+          - 256
+          - 320
+          - 384
+          - 448
+          - 512
+          - 576
+          - 704
+          - 768
+          - 832
+          - 1024
+          - 1280
+          - 1536
+          - 1792
+          - 2048
+          - 2240
+          - 2688
+          - 2944
+          - 3008
+
+      - name: timeout
+        type: number
+        description: The number of seconds until your AWS Lambda function times out.
+        default: 5
+        min: 1
+        max: 900
+
+      - name: description
+        type: string
+        description: A description of your application.
+
+      - name: region
+        type: string
+        description: The AWS region you wish to deploy your application to.
+        default: us-east-1
+
+      - name: domain
+        type: string
+        description: A custom domain that will be automatically set up for your Express.js API.
+
+      - name: roleName
+        type: string
+        description: The name of an AWS IAM Role that contains custom permissions for your AWS Lambda function.
+        default: us-east-1
+
+      - name: env
+        type: env
+        description: Environment variables to be passed into your AWS Lambda function runtime.
+
+      - name: layers
+        type: array
+        description: An array of AWS Lambda Layer ARNs to attach to your AWS Lambda function.
+        min: 0
+        max: 1
+
+      - name: traffic
+        type: number
+        description: A percentage of traffic expressed as a decimal between 0.0 and 1.0 (e.g. 0.4) to serve your latest deployment to
+        min: 0
+        max: 1
+
+      - name: openapi
+        type: boolean
+        description: Automatically generate an OpenAPI specification on every deployment.
+
+  # remove
+
+  remove:
+    description: Removes your Express.js application from AWS Lambda, AWS HTTP API and more
+
+  # metrics
+
+  metrics:
+    description: Fetch metrics from your Express.js API

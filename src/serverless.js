@@ -69,18 +69,24 @@ class Express extends Component {
       delete this.state.domain;
     }
 
-    this.state.url = this.state.domain || this.state.apiGatewayUrl; // Always prefer custom domain
+    // Set outputs
 
-    outputs.url = this.state.url;
     outputs.apiGatewayUrl = this.state.apiGatewayUrl;
 
     if (inputs.domain) {
+      // Ensure http info isn't replicated
+      if (!inputs.domain.includes('http://') && !inputs.domain.includes('https://')) {
+        outputs.url = `https://${inputs.domain}`;
+      } else {
+        outputs.url = inputs.domain;
+      }
       // if domain is not in aws account, show the regional url
       // as it would be required by the external registrars
       if (this.state.apigatewayDomainName && !this.state.domainHostedZoneId) {
         outputs.regionalUrl = `https://${this.state.apigatewayDomainName}`;
       }
-      outputs.domain = `https://${inputs.domain}`;
+    } else {
+      outputs.url = this.state.apiGatewayUrl;
     }
 
     return outputs;
@@ -105,10 +111,7 @@ class Express extends Component {
    * Metrics
    */
   async metrics(inputs = {}) {
-    // Validate
-    if (!inputs.rangeStart || !inputs.rangeEnd) {
-      throw new Error('rangeStart and rangeEnd are require inputs');
-    }
+    console.log('Fetching metrics...');
 
     const result = await getMetrics(
       this.state.region,
