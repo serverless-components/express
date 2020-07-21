@@ -1,6 +1,6 @@
 'use strict';
 
-const express = require('express');
+const express = require('express'); // eslint-disable-line
 
 const app = express();
 
@@ -10,7 +10,7 @@ app.get('/*', (req, res) => {
 });
 
 // Error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error(err);
   res.status(500).send('Internal Serverless Error');
 });
