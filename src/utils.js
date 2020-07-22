@@ -57,7 +57,7 @@ const getClients = (credentials, region = 'us-east-1') => {
   const route53 = new AWS.Route53({ credentials, region });
   const acm = new AWS.ACM({
     credentials,
-    region
+    region,
   });
   const extras = new AWS.Extras({ credentials, region });
 
@@ -252,15 +252,15 @@ const getVpcConfig = (vpcConfig) => {
   if (vpcConfig === 'undefined' || vpcConfig === null) {
     return {
       SecurityGroupIds: [],
-      SubnetIds: []
-    }
+      SubnetIds: [],
+    };
   }
 
   return {
     SecurityGroupIds: vpcConfig.securityGroupIds,
-    SubnetIds: vpcConfig.subnetIds
-  }
-}
+    SubnetIds: vpcConfig.subnetIds,
+  };
+};
 
 /*
  * Creates a lambda function on aws
@@ -270,7 +270,7 @@ const getVpcConfig = (vpcConfig) => {
  * @param ${object} clients - the aws clients object
  */
 const createLambda = async (instance, inputs, clients) => {
-  const vpcConfig = getVpcConfig(inputs.vpc)
+  const vpcConfig = getVpcConfig(inputs.vpc);
 
   const params = {
     FunctionName: instance.state.lambdaName,
@@ -285,7 +285,7 @@ const createLambda = async (instance, inputs, clients) => {
     Environment: {
       Variables: inputs.env || {},
     },
-    VpcConfig: vpcConfig
+    VpcConfig: vpcConfig,
   };
 
   if (inputs.layers) {
@@ -343,7 +343,7 @@ const updateLambdaCode = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const updateLambdaConfig = async (instance, inputs, clients) => {
-  const vpcConfig = getVpcConfig(inputs.vpc)
+  const vpcConfig = getVpcConfig(inputs.vpc);
 
   const functionConfigParams = {
     FunctionName: instance.state.lambdaName,
@@ -356,7 +356,7 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
     Environment: {
       Variables: inputs.env || {},
     },
-    VpcConfig: vpcConfig
+    VpcConfig: vpcConfig,
   };
 
   if (inputs.layers) {
