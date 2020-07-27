@@ -39,6 +39,13 @@ class Express extends Component {
 
     console.log('Deploying Express App...');
 
+    // Throw error on domain change
+    if (inputs.domain && this.state.domain && this.state.domain !== inputs.domain) {
+      throw new Error(
+        `Changing the domain from ${this.state.domain} to ${inputs.domain} will remove your infrastructure.  Please remove it manually, change the domain, then re-deploy.`
+      );
+    }
+
     // Validate
     if (inputs.timeout && inputs.timeout > 30) {
       throw new Error('"timeout" can not be greater than 30 seconds.');
