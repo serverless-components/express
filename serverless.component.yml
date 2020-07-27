@@ -15,13 +15,14 @@ providers:
 actions:
   # deploy
   deploy:
-    definition: Deploy your Express.js application to AWS Lambda, AWS HTTP API and more.
+    description: Deploy your Express.js application to AWS Lambda, AWS HTTP API and more.
     inputs:
-      - name: src
+
+      src:
         type: src
         description: The folder containing the source code of your Express.js application.
 
-      - name: memory
+      memory:
         type: number
         description: The memory size of your AWS Lambda function.
         default: 1024
@@ -47,48 +48,48 @@ actions:
           - 2944
           - 3008
 
-      - name: timeout
+      timeout:
         type: number
         description: The number of seconds until your AWS Lambda function times out.
         default: 5
         min: 1
         max: 900
 
-      - name: description
+      description:
         type: string
         description: A description of your application.
 
-      - name: region
+      region:
         type: string
         description: The AWS region you wish to deploy your application to.
         default: us-east-1
 
-      - name: domain
+      domain:
         type: string
         description: A custom domain that will be automatically set up for your Express.js API.
 
-      - name: roleName
+      roleName:
         type: string
         description: The name of an AWS IAM Role that contains custom permissions for your AWS Lambda function.
         default: us-east-1
 
-      - name: env
+      env:
         type: env
         description: Environment variables to be passed into your AWS Lambda function runtime.
 
-      - name: layers
+      layers:
         type: array
         description: An array of AWS Lambda Layer ARNs to attach to your AWS Lambda function.
         min: 0
-        max: 1
+        max: 5
 
-      - name: traffic
+      traffic:
         type: number
         description: A percentage of traffic expressed as a decimal between 0.0 and 1.0 (e.g. 0.4) to serve your latest deployment to
         min: 0
         max: 1
 
-      - name: openapi
+      openApi:
         type: boolean
         description: Automatically generate an OpenAPI specification on every deployment.
 
