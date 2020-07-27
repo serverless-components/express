@@ -249,7 +249,7 @@ const getLambda = async (clients, lambdaName) => {
 };
 
 const getVpcConfig = (vpcConfig) => {
-  if (vpcConfig === 'undefined' || vpcConfig === null) {
+  if (vpcConfig == null) {
     return {
       SecurityGroupIds: [],
       SubnetIds: [],
