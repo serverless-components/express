@@ -20,8 +20,6 @@
 
 Check out the **[Serverless Fullstack Application](https://github.com/serverless-components/fullstack-app)** for a ready-to-use boilerplate and overall great example of how to use this Component.
 
-<br/>
-
 <p align="center">
   <img src="https://s3.amazonaws.com/assets.github.serverless/components/serverless_express_cli_deploy.gif" height="400" align="center">
 </p>
