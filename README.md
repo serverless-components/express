@@ -122,7 +122,10 @@ Once you've chosen your configuration, run `serverless deploy` again (or simply 
 
 ### Dev Mode
 
-<img src="/assets/dev-demo.gif" height="250" align="right">
+<p align="center">
+  <img src="https://s3.amazonaws.com/assets.github.serverless/components/serverless_express_cli_dev_mode.gif" height="400" align="center">
+</p>
+
 
 Now that you've got your basic express app up and running, it's time to develop that into a real world application. Instead of having to run `serverless deploy` everytime you make changes you wanna test, run `serverless dev`, which allows the CLI to watch for changes in your source directory as you develop, and deploy instantly on save.
 
