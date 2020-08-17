@@ -22,7 +22,7 @@ Check out the **[Serverless Fullstack Application](https://github.com/serverless
 
 <br/>
 
-<img src="https://s3.amazonaws.com/assets.github.serverless/components/serverless_express_cli_deploy.gif">
+<img src="https://s3.amazonaws.com/assets.github.serverless/components/serverless_express_cli_deploy.gif" height="400" align="center">
 
 Get Started:
 
