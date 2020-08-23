@@ -26,18 +26,18 @@ Check out the **[Serverless Fullstack Application](https://github.com/serverless
 
 Get Started:
 
-1. [**Install**](#1-install)
-2. [**Initialize**](#2-initialize)
-3. [**Deploy**](#3-deploy)
-4. [**Configure**](#4-configure)
-5. [**Dev Mode**](#5-dev-mode)
-6. [**Monitor**](#6-monitor)
-7. [**Remove**](#7-remove)
+1. [**Install**](#install)
+2. [**Initialize**](#initialize)
+3. [**Deploy**](#deploy)
+4. [**Configure**](#configure)
+5. [**Dev Mode**](#dev-mode)
+6. [**Monitor**](#monitor)
+7. [**Remove**](#remove)
 
 Extra:
 
-- [**Architecture**](#Architecture)
-- [**Guides**](#Guides)
+- [**Architecture**](#architecture)
+- [**Guides**](#guides)
 
 &nbsp;
 
