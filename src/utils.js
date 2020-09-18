@@ -335,6 +335,9 @@ const createLambda = async (instance, inputs, clients, retries = 0) => {
           );
         }
       }
+      // Try again.  We often to wait around 3 seconds after the role is created before it can be assumed
+      await sleep(3000);
+      return createLambda(instance, inputs, clients, retries);
     }
 
     if (
@@ -351,6 +354,9 @@ const createLambda = async (instance, inputs, clients, retries = 0) => {
           'Unable to create the AWS Lambda function which your Express.js app runs on.  The reason is "Lambda was unable to configure access to your environment variables because the KMS key is invalid".  This is a known issue with AWS Lambda\'s APIs, and there is nothing the Serverless Framework can do to help with it at this time.  We suggest trying to remove this instance by running "serverless remove" then redeploying to attempt to get around this.'
         );
       }
+      // Retry.
+      await sleep(3000);
+      return createLambda(instance, inputs, clients, retries);
     }
 
     throw e;
