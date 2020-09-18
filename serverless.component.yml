@@ -1,5 +1,5 @@
 name: express
-version: 1.6.0
+version: 1.7.0
 author: eahefnawy
 org: serverlessinc
 description: Deploys a serverless Express.js application onto AWS Lambda and AWS HTTP API.
@@ -13,7 +13,6 @@ actions:
   deploy:
     description: Deploy your Express.js application to AWS Lambda, AWS HTTP API and more.
     inputs:
-
       src:
         type: src
         description: The folder containing the source code of your Express.js application.

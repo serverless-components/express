@@ -27,9 +27,6 @@ class Express extends Component {
   async deploy(inputs) {
     const outputs = {};
 
-    // Defaults
-    inputs.openApi = inputs.openApi === true;
-
     // Check credentials exist
     if (Object.keys(this.credentials.aws).length === 0) {
       const msg =
