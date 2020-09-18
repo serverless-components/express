@@ -94,7 +94,7 @@ const getNakedDomain = (domain) => {
  * @param ${instance} instance - the component instance
  * @param ${object} config - the component config
  */
-const packageExpress = async (instance, inputs, outputs) => {
+const packageExpress = async (instance, inputs) => {
   console.log('Packaging Express.js application...');
 
   // unzip source zip file
@@ -106,10 +106,14 @@ const packageExpress = async (instance, inputs, outputs) => {
   console.log('Installing Express + AWS Lambda handler...');
   copySync(path.join(__dirname, '_express'), path.join(sourceDirectory, '_express'));
 
+  /**
+   * DEPRECATED: This runs untrusted code and should not be used until we can find a way to do this more securely.
+   */
   // Attempt to infer data from the application
-  if (inputs.openApi) {
-    await infer(instance, inputs, outputs, sourceDirectory);
-  }
+  // if (inputs.openApi) {
+  //   console.log('Attempting to collect API routes and convert to OpenAPI format, since openAPI is set to 'true'')
+  //   await infer(instance, inputs, outputs, sourceDirectory);
+  // }
 
   // add sdk to the source directory, add original handler
   console.log('Installing Serverless Framework SDK...');
@@ -133,101 +137,106 @@ const packageExpress = async (instance, inputs, outputs) => {
 };
 
 /*
+ * DEPRECATED: This runs untrusted code and should not be used until we can find a way to do this more securely.
+ *
  * Infer data from the Application by attempting to intiatlize it during deployment and extracting data.
  *
  * @param ${object} instance - the component instance
  * @param ${object} inputs - the component inputs
  */
-const infer = async (instance, inputs, outputs, sourceDirectory) => {
-  // Initialize application
-  let app;
-  try {
-    app = require(path.join(sourceDirectory, './app.js'));
-  } catch (error) {
-    const msg = error.message;
-    error.message = `OpenAPI auto-generation failed due to the Express Component not being able to start your app.  To fix this, you can turn this feature off by specifying "inputs.openApi: false" or fix the following issue: ${msg}`;
-    throw error;
-  }
+// const infer = async (instance, inputs, outputs, sourceDirectory) => {
+//   // Initialize application
+//   let app;
+//   try {
+//     // Load app
+//     app = require(path.join(sourceDirectory, './app.js'));
+//   } catch (error) {
+//     const msg = error.message;
+//     error.message = `OpenAPI auto-generation failed due to the Express Component not being able to start your app. To fix this, you can turn this feature off by specifying 'inputs.openApi: false' or fix the following issue: ${msg}`;
+//     throw error;
+//   }
 
-  try {
-    await generateOpenAPI(instance, inputs, outputs, app);
-  } catch (error) {
-    const msg = error.message;
-    error.message = `OpenAPI auto-generation failed due to the Express Component not being able to start your app.  To fix this, you can turn this feature off by specifying "inputs.openApi: false" or fix the following issue: ${msg}`;
-    throw error;
-  }
-};
+//   try {
+//     await generateOpenAPI(instance, inputs, outputs, app);
+//   } catch (error) {
+//     const msg = error.message;
+//     error.message = `OpenAPI auto-generation failed due to the Express Component not being able to start your app.  To fix this, you can turn this feature off by specifying 'inputs.openApi: false' or fix the following issue: ${msg}`;
+//     throw error;
+//   }
+// };
 
 /*
+ * DEPRECATED: This runs untrusted code and should not be used until we can find a way to do this more securely.
+ *
  * Generate an OpenAPI specification from the Application
  *
  * @param ${object} instance - the component instance
  * @param ${object} inputs - the component inputs
  */
-const generateOpenAPI = async (instance, inputs, outputs, app) => {
-  // Open API Version 3.0.3, found here: https://swagger.io/specification/
-  // TODO: This is not complete, but the pieces that do exist are accurate.
-  const openApi = {
-    openapi: '3.0.3',
-    info: {
-      // title: null,
-      // description: null,
-      version: '0.0.1',
-    },
-    paths: {},
-  };
+// const generateOpenAPI = async (instance, inputs, outputs, app) => {
+//   // Open API Version 3.0.3, found here: https://swagger.io/specification/
+//   // TODO: This is not complete, but the pieces that do exist are accurate.
+//   const openApi = {
+//     openapi: '3.0.3',
+//     info: {
+//       // title: null,
+//       // description: null,
+//       version: '0.0.1',
+//     },
+//     paths: {},
+//   };
 
-  // Parts of the OpenAPI spec that we may use these at a later date.
-  // For now, they are unincorporated.
-  // const oaServersObject = {
-  //   url: null,
-  //   description: null,
-  //   variables: {},
-  // };
-  // const oaComponentsObject = {
-  //   schemas: {},
-  //   responses: {},
-  //   parameters: {},
-  //   examples: {},
-  //   requestBodies: {},
-  //   headers: {},
-  //   securitySchemes: {},
-  //   links: {},
-  //   callbacks: {},
-  // };
-  // const oaPathItem = {
-  //   description: null,
-  //   summary: null,
-  //   operationId: null,
-  //   responses: {},
-  // };
+//   // Parts of the OpenAPI spec that we may use these at a later date.
+//   // For now, they are unincorporated.
+//   // const oaServersObject = {
+//   //   url: null,
+//   //   description: null,
+//   //   variables: {},
+//   // };
+//   // const oaComponentsObject = {
+//   //   schemas: {},
+//   //   responses: {},
+//   //   parameters: {},
+//   //   examples: {},
+//   //   requestBodies: {},
+//   //   headers: {},
+//   //   securitySchemes: {},
+//   //   links: {},
+//   //   callbacks: {},
+//   // };
+//   // const oaPathItem = {
+//   //   description: null,
+//   //   summary: null,
+//   //   operationId: null,
+//   //   responses: {},
+//   // };
 
-  if (app && app._router && app._router.stack && app._router.stack.length) {
-    app._router.stack.forEach((route) => {
-      // This array holds all middleware layers, which include routes and more
-      // First check if this 'layer' is an express route type, otherwise skip
-      if (!route.route) return;
+//   if (app && app._router && app._router.stack && app._router.stack.length) {
+//     app._router.stack.forEach((route) => {
+//       // This array holds all middleware layers, which include routes and more
+//       // First check if this 'layer' is an express route type, otherwise skip
+//       if (!route.route) return;
 
-      // Define key data
-      const ePath = route.route.path;
+//       // Define key data
+//       const ePath = route.route.path;
 
-      if (['*', '/*'].indexOf(ePath) > -1) {
-        return;
-      }
+//       if (['*', '/*'].indexOf(ePath) > -1) {
+//         return;
+//       }
 
-      // Save path
-      openApi.paths[ePath] = openApi.paths[ePath] || {};
+//       // Save path
+//       openApi.paths[ePath] = openApi.paths[ePath] || {};
 
-      for (const method of Object.keys(route.route.methods)) {
-        // Save method
-        openApi.paths[ePath][method] = {};
-      }
-    });
-  }
+//       for (const method of Object.keys(route.route.methods)) {
+//         // Save method
+//         openApi.paths[ePath][method] = {};
+//       }
+//     });
+//   }
 
-  // Save to outputs
-  outputs.api = openApi;
-};
+//   // Save to outputs
+//   outputs.api = openApi;
+// };
 
 /*
  * Fetches a lambda function by ARN
@@ -269,7 +278,10 @@ const getVpcConfig = (vpcConfig) => {
  * @param ${object} inputs - the component inputs
  * @param ${object} clients - the aws clients object
  */
-const createLambda = async (instance, inputs, clients) => {
+const createLambda = async (instance, inputs, clients, retries = 0) => {
+  // Track retries
+  retries++;
+
   const vpcConfig = getVpcConfig(inputs.vpc);
 
   const params = {
@@ -302,16 +314,45 @@ const createLambda = async (instance, inputs, clients) => {
     instance.state.lambdaVersion = res.Version;
   } catch (e) {
     console.log(`Unable to create AWS Lambda due to: ${e.message}`);
+
+    // Handle known errors
+
+    if (e.message.includes('The role defined for the function cannot be assumed by Lambda')) {
+      // This error can happen upon first creation.  So sleeping is an acceptable solution.  This code will retry multiple times.
+      if (retries > 5) {
+        console.log(
+          'Attempted to retry Lambda creation 5 times, but the invalid role error persists.  Aborting...'
+        );
+
+        // Throw different errors, depending on whether the user is using a custom role
+        if (instance.state.userRoleArn) {
+          throw new Error(
+            'Unable to create the AWS Lambda function which your Express.js app runs on.  The reason is "the role defined for the function cannot be assumed by Lambda".  This might be due to a missing or invalid "Trust Relationship" within the policy of the custom IAM Role you you are attempting to use.  Try modifying that.  If that doesn\'t work, this is an issue with AWS Lambda\'s APIs.  We suggest trying to remove this instance by running "serverless remove" then redeploying to get around this.'
+          );
+        } else {
+          throw new Error(
+            'Unable to create the AWS Lambda function which your Express.js app runs on.  The reason is "the role defined for the function cannot be assumed by Lambda".  This is an issue with AWS Lambda\'s APIs.  We suggest trying to remove this instance by running "serverless remove" then redeploying to get around this.  This seems to be the only way users have gotten past this.'
+          );
+        }
+      }
+    }
+
     if (
-      e.message.includes('The role defined for the function cannot be assumed by Lambda') ||
       e.message.includes(
         'Lambda was unable to configure access to your environment variables because the KMS key is invalid'
       )
     ) {
-      // we need to wait around 2 seconds after the role is created before it can be assumed
-      await sleep(2000);
-      return createLambda(instance, inputs, clients);
+      // This error can happen upon first creation.  So sleeping is an acceptable solution.  This code will retry multiple times.
+      if (retries > 5) {
+        console.log(
+          'Attempted to retry Lambda creation 5 times, but the KMS error persists  Aborting...'
+        );
+        throw new Error(
+          'Unable to create the AWS Lambda function which your Express.js app runs on.  The reason is "Lambda was unable to configure access to your environment variables because the KMS key is invalid".  This is a known issue with AWS Lambda\'s APIs, and there is nothing the Serverless Framework can do to help with it at this time.  We suggest trying to remove this instance by running "serverless remove" then redeploying to attempt to get around this.'
+        );
+      }
     }
+
     throw e;
   }
   return null;
@@ -472,7 +513,7 @@ const findOrCreateCertificate = async (instance, clients) => {
   );
 
   console.log(
-    `Certificate for ${instance.state.nakedDomain} is in a "${certificate.Status}" status`
+    `Certificate for ${instance.state.nakedDomain} is in a '${certificate.Status}' status`
   );
 
   if (certificate.Status === 'PENDING_VALIDATION') {
