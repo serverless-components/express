@@ -109,10 +109,6 @@ actions:
         min: 0
         max: 1
 
-      openApi:
-        type: boolean
-        description: Automatically generate an OpenAPI specification on every deployment.
-
   # remove
 
   remove:
