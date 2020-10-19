@@ -1,0 +1,6 @@
+name: express-starter
+org: serverlessinc
+description: Deploys a serverless express api on top of AWS Lambda
+keywords: aws, serverless, faas, lambda, express
+repo: https://github.com/serverless-components/express
+license: MIT
