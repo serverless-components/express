@@ -271,6 +271,17 @@ const getVpcConfig = (vpcConfig) => {
   };
 };
 
+const getEFS = (fileSystemConfig) => {
+  if (fileSystemConfig == null) {
+    return {};
+  }
+
+  return fileSystemConfig.map(({ arnName, mountPath }) => ({
+    Arn: arnName,
+    LocalMountPath: mountPath,
+  }));
+};
+
 /*
  * Creates a lambda function on aws
  *
@@ -283,6 +294,7 @@ const createLambda = async (instance, inputs, clients, retries = 0) => {
   retries++;
 
   const vpcConfig = getVpcConfig(inputs.vpc);
+  const fileSystemConfig = getEFS(inputs.fileSystemConfig);
 
   const params = {
     FunctionName: instance.state.lambdaName,
@@ -298,6 +310,7 @@ const createLambda = async (instance, inputs, clients, retries = 0) => {
       Variables: inputs.env || {},
     },
     VpcConfig: vpcConfig,
+    FileSystemConfigs: fileSystemConfig,
   };
 
   if (inputs.layers) {
