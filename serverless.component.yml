@@ -109,6 +109,16 @@ actions:
         min: 0
         max: 1
 
+      vpc:
+        type: object
+        required: false
+        description: The VPC configuration for your AWS Lambda function
+        keys:
+          securityGroupIds:
+            type: string
+          SubnetIds:
+            type: String
+
   # remove
 
   remove:
