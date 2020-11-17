@@ -91,7 +91,6 @@ actions:
       roleName:
         type: string
         description: The name of an AWS IAM Role that contains custom permissions for your AWS Lambda function.
-        default: us-east-1
 
       env:
         type: env
