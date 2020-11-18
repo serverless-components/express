@@ -1,6 +1,6 @@
 app: express-starter
 component: express
-name: express-starter
+name: express-starter-typescript-tsc
 
 inputs:
   src:
