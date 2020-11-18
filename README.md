@@ -113,6 +113,13 @@ inputs:
     - arn:aws:first:layer
     - arn:aws:second:layer
   domain: api.serverless.com     # (optional) if the domain was registered via AWS Route53 on the account you are deploying to, it will automatically be set-up with your Express app's API Gateway, as well as a free AWS ACM SSL Cert.
+  vpc:                           # (optional) vpc configuration to apply on the express lambda function
+    securityGroupIds:
+      - abc
+      - xyz
+    subnetIds:
+      - abc
+      - xyz
   region: us-east-2              # (optional) aws region to deploy to. default is us-east-1.
 ```
 
