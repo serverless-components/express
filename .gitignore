@@ -7,4 +7,4 @@
 /src/node_modules
 /test/src/node_modules
 /test/src/package-lock.json
-
+.DS_Store
