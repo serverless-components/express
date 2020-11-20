@@ -1,5 +1,5 @@
 name: express
-version: 1.7.3
+version: 1.7.4
 author: eahefnawy
 org: serverlessinc
 description: Deploys a serverless Express.js application onto AWS Lambda and AWS HTTP API.
@@ -98,6 +98,8 @@ actions:
 
       layers:
         type: array
+        items:
+          - type: string
         description: An array of AWS Lambda Layer ARNs to attach to your AWS Lambda function.
         min: 0
         max: 5
@@ -110,13 +112,16 @@ actions:
 
       vpc:
         type: object
-        required: false
         description: The VPC configuration for your AWS Lambda function
         keys:
           securityGroupIds:
-            type: string
-          SubnetIds:
-            type: String
+            type: array
+            items:
+              - type: string
+          subnetIds:
+            type: array
+            items:
+              - type: string
 
   # remove
 
