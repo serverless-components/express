@@ -1001,6 +1001,8 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
  * @param ${object} clients - the aws clients object
  */
 const createOrUpdateDomain = async (instance, inputs, clients) => {
+  instance.state.domain = inputs.domain;
+
   instance.state.domainHostedZoneId = await getDomainHostedZoneId(instance, inputs, clients);
 
   instance.state.certificateArn = await findOrCreateCertificate(instance, clients);
