@@ -36,6 +36,15 @@ class Express extends Component {
 
     console.log('Deploying Express App...');
 
+    inputs.domain = inputs.domain
+      ? inputs.domain.replace('https://', '').replace('http://', '')
+      : null;
+
+    // for backward compatability
+    this.state.domain = this.state.domain
+      ? this.state.domain.replace('https://', '').replace('http://', '')
+      : null;
+
     // Throw error on domain change
     if (inputs.domain && this.state.domain && this.state.domain !== inputs.domain) {
       throw new Error(

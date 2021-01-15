@@ -3,6 +3,6 @@
   "author": "Serverless, Inc.",
   "license": "Apache",
   "dependencies": {
-    "aws-serverless-express": "^3.3.8"
+    "serverless-http": "^2.6.0"
   }
 }

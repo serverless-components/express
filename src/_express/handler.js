@@ -1,62 +1,46 @@
 'use strict';
 
-const fs = require('fs');
-const awsServerlessExpress = require('aws-serverless-express');
+const serverlessHttp = require('serverless-http');
 
-exports.handler = async (event, context) => {
-  // remove AWS Lambda default handling of unhandled rejections
-  // this makes sure dev mode cli catches unhandled rejections
-  process.removeAllListeners('unhandledRejection');
+// remove AWS Lambda default handling of unhandled rejections
+// this makes sure dev mode cli catches unhandled rejections
+process.removeAllListeners('unhandledRejection');
 
-  // make event object look like APIG 1.0
-  // until aws-serverless-express supports APIG 2.0
-  event.path = event.requestContext.http.path;
-  event.method = event.requestContext.http.method;
-  event.httpMethod = event.requestContext.http.method;
-  // APIG 2.0 extracts cookies from headers automatically.
-  // We need to put `cookie` back to `headers.cookie` so it works with current aws-serverless-express
-  if (event.cookies && event.cookies.length > 0) {
-    event.headers.cookie = event.cookies.join('; ');
-  }
+let app = (_req, res) => {
+  res.statusCode = 200;
+  res.end(`Request received: ${_req.method} - ${_req.path}`);
+};
 
-  // NOTICE: require() is relative to this file, while existsSync() is relative to the cwd, which is the root of lambda
-  let app;
-  if (fs.existsSync('./app.js')) {
-    // load the user provided app
+// NOTICE: require() is relative to this file
+try {
+  // eslint-disable-next-line import/no-unresolved
+  app = require('..');
 
-    try {
-      // eslint-disable-next-line import/no-unresolved
-      app = require('../app.js');
-    } catch (e) {
-      if (e.message.includes("Cannot find module 'express'")) {
-        // user probably did not run "npm i". return a helpful message.
-        return {
-          statusCode: 404,
-          body:
-            'The "express" dependency was not found. Did you install "express" as a dependency within your source folder via npm?',
-        };
-      }
-      // some other require error
-      return {
-        statusCode: 404,
-        body: e.message,
-      };
-    }
-  } else {
-    // load the built-in default app
-    app = require('../_src/app.js');
-  }
-
-  if (typeof app !== 'function') {
-    // make sure user exported app in app.js or return a helpful message.
-    return {
-      statusCode: 404,
-      body:
-        'Express app not found. Please make sure you are exporting express from an "app.js" file.',
+  if (typeof app === 'object' && Object.keys(app).length === 0) {
+    app = (_req, res) => {
+      res.statusCode = 404;
+      res.end('App not found. Please make sure the app is probably exported from the JS file.');
     };
   }
+} catch (e) {
+  if (e.message.includes('Cannot find module')) {
+    // user probably did not run "npm i". return a helpful message.
+    app = (_req, res) => {
+      res.statusCode = 500;
+      res.end('Did you install all your dependencies within your source folder via npm?');
+    };
+  } else {
+    // some other error such as package.json main not matching filename
+    app = (_req, res) => {
+      res.statusCode = 500;
+      res.end(e.message);
+    };
+  }
+}
 
-  const server = awsServerlessExpress.createServer(app);
-  const res = await awsServerlessExpress.proxy(server, event, context, 'PROMISE');
-  return res.promise;
+const handle = serverlessHttp(app);
+
+exports.handler = async (event, context) => {
+  const res = await handle(event, context);
+  return res;
 };
