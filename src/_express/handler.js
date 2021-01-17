@@ -38,10 +38,21 @@ try {
   }
 }
 
+// app.use((err, req, res, next) => {
+//   console.error(err.stack);
+//   res.status(500).send('caught');
+// });
+
 const handle = serverlessHttp(app);
 
 exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
   const res = await handle(event, context);
+
+  // log the error for dev mode
+  if (res.statusCode > 300) {
+    console.error(res.body);
+  }
+
   return res;
 };
