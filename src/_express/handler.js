@@ -33,7 +33,7 @@ try {
     // some other error such as package.json main not matching filename
     app = (_req, res) => {
       res.statusCode = 500;
-      res.end(e.message);
+      res.end(e.stack);
     };
   }
 }
@@ -41,6 +41,7 @@ try {
 const handle = serverlessHttp(app);
 
 exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   const res = await handle(event, context);
   return res;
 };
