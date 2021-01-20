@@ -1,5 +1,5 @@
 name: express
-version: dev
+version: 1.8.0
 author: eahefnawy
 org: serverlessinc
 description: Deploys a serverless Express.js application onto AWS Lambda and AWS HTTP API.
