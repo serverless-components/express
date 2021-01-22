@@ -47,8 +47,6 @@ if (typeof app.use === 'function') {
 const handle = serverlessHttp(app);
 
 exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
-
   const res = await handle(event, context);
 
   return res;
