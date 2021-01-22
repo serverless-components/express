@@ -3,6 +3,6 @@
   "author": "Serverless, Inc.",
   "license": "Apache",
   "dependencies": {
-    "serverless-http": "^2.6.0"
+    "serverless-http": "^2.7.0"
   }
 }
