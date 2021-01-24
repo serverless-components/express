@@ -3,6 +3,7 @@
 const path = require('path');
 const AWS = require('@serverless/aws-sdk-extra');
 const https = require('https');
+const { parseDomain } = require('parse-domain');
 
 const agent = new https.Agent({
   keepAlive: true,
@@ -79,13 +80,14 @@ const getClients = (credentials, region = 'us-east-1') => {
  * @param ${string} domain - the domain input that the user provided
  */
 const getNakedDomain = (domain) => {
-  if (!domain) {
-    return null;
+  const parsedDomain = parseDomain(domain);
+
+  if (!parsedDomain.topLevelDomains) {
+    throw new Error(`"${domain}" is not a valid domain.`);
   }
-  const domainParts = domain.split('.');
-  const topLevelDomainPart = domainParts[domainParts.length - 1];
-  const secondLevelDomainPart = domainParts[domainParts.length - 2];
-  return `${secondLevelDomainPart}.${topLevelDomainPart}`;
+
+  const nakedDomain = `${parsedDomain.domain}.${parsedDomain.topLevelDomains.join('.')}`;
+  return nakedDomain;
 };
 
 /*
