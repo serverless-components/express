@@ -1,5 +1,5 @@
 {
-  "main": "./app.js",
+  "main": "app.js",
   "author": "Serverless, Inc.",
   "license": "Apache",
   "dependencies": {
