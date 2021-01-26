@@ -124,7 +124,7 @@ const packageExpress = async (instance, inputs) => {
   if (!inputs.src) {
     // add default express app
     console.log('Installing Default Express App...');
-    copySync(path.join(__dirname, '_src'), path.join(sourceDirectory, '_src'));
+    copySync(path.join(__dirname, '_src'), path.join(sourceDirectory));
   }
   // zip the source directory with the shim and the sdk
 
