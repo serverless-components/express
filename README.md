@@ -48,6 +48,8 @@ To get started with this component, install the latest version of the Serverless
 $ npm install -g serverless
 ```
 
+After installation, make sure you connect your AWS account on the [Serverless Dashboard](https://app.serverless.com)
+
 ### Initialize
 
 The easiest way to start using the express component is by initializing the `express-starter` template. Just run this command:
@@ -57,22 +59,13 @@ $ serverless init express-starter
 $ cd express-starter
 ```
 
-This will also run `npm install` for you, and create an empty `.env` file. Open that `.env` file and can add in your AWS credentials
-
-```
-# .env
-AWS_ACCESS_KEY_ID=XXX
-AWS_SECRET_ACCESS_KEY=XXX
-```
-
-You should now have a directory that looks something like this:
+This will also run `npm install` for you. You should now have a directory that looks something like this:
 
 ```
 |- app.js
 |- node_modules
 |- package.json
 |- serverless.yml
-|- .env
 ```
 
 ### Deploy
