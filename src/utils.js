@@ -90,6 +90,15 @@ const getNakedDomain = (domain) => {
   return nakedDomain;
 };
 
+/**
+ * Determines the appropriate location to load app file from.
+ *
+ * @param ${object} inputs - the component inputs config
+ */
+const getAppDirectory = (inputs) => {
+  return inputs.dist ? inputs.dist : inputs.src;
+};
+
 /*
  * Packages express app and injects shims and sdk
  *
@@ -100,8 +109,8 @@ const packageExpress = async (instance, inputs) => {
   console.log('Packaging Express.js application...');
 
   // unzip source zip file
-  console.log(`Unzipping ${inputs.src || 'files'}...`);
-  const sourceDirectory = await instance.unzip(inputs.src);
+  console.log(`Unzipping ${getAppDirectory() || 'files'}...`);
+  const sourceDirectory = await instance.unzip(getAppDirectory());
   console.log(`Files unzipped into ${sourceDirectory}...`);
 
   // add shim to the source directory
@@ -1366,6 +1375,7 @@ const createOrUpdateAlias = async (instance, inputs, clients) => {
 module.exports = {
   generateId,
   sleep,
+  getAppDirectory,
   getClients,
   packageExpress,
   createOrUpdateFunctionRole,
