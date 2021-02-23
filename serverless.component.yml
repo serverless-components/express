@@ -8,6 +8,10 @@ repo: https://github.com/serverless-components/express
 license: MIT
 main: ./src
 
+types:
+  providers:
+    - aws
+
 actions:
   # deploy
   deploy:
