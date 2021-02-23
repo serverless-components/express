@@ -27,13 +27,6 @@ class Express extends Component {
   async deploy(inputs) {
     const outputs = {};
 
-    // Check credentials exist
-    if (Object.keys(this.credentials.aws).length === 0) {
-      const msg =
-        'AWS Credentials not found. Make sure you have a .env file in the current working directory. - Docs: https://git.io/JvArp';
-      throw new Error(msg);
-    }
-
     console.log('Deploying Express App...');
 
     inputs.domain = inputs.domain
