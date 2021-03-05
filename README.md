@@ -98,6 +98,8 @@ inputs:
   memory: 512                    # (optional) lambda memory size.
   timeout: 10                    # (optional) lambda timeout.
   description: My Express App    # (optional) lambda & api gateway description.
+  tags:                          # (optional) a list of tags to apply to the function & API GW
+    service: "api"               #            example tag
   env:                           # (optional) env vars.
     DEBUG: 'express:*'           #            this express specific env var will print express debug logs.
   roleName: my-custom-role-name  # (optional) custom AWS IAM Role name for setting custom permissions.

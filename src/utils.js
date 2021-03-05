@@ -295,6 +295,7 @@ const createLambda = async (instance, inputs, clients, retries = 0) => {
     Publish: true,
     Role: instance.state.userRoleArn || instance.state.defaultLambdaRoleArn, // Default to automatically created role
     Runtime: 'nodejs12.x',
+    Tags: inputs.tags || {},
     Timeout: inputs.timeout || 29, // Meet the APIG timeout limit, don't exceed it
     Environment: {
       Variables: inputs.env || {},
@@ -402,6 +403,7 @@ const updateLambdaConfig = async (instance, inputs, clients) => {
     Timeout: inputs.timeout || 29, // Meet APIG timeout limit, don't exceed it
     Handler: instance.state.handler,
     Runtime: 'nodejs12.x',
+    Tags: inputs.tags || {},
     Environment: {
       Variables: inputs.env || {},
     },
@@ -960,6 +962,7 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
     const updateApiParams = {
       ApiId: apiId,
       Description: inputs.description || getDefaultDescription(instance),
+      Tags: inputs.tags || {},
       Target: `arn:aws:apigateway:${instance.state.region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`,
     };
 
@@ -979,6 +982,7 @@ const createOrUpdateApi = async (instance, inputs, clients) => {
     ProtocolType: 'HTTP',
     // CredentialsArn: inputs.roleName || instance.state.defaultLambdaRoleArn,
     Description: inputs.description || getDefaultDescription(instance),
+    Tags: inputs.tags || {},
     Target: `arn:aws:apigateway:${instance.state.region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`,
   };
 
