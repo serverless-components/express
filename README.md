@@ -247,4 +247,4 @@ app.use(function (req, res, next) {
 
 If you run into a CORS issue, ensure you are setting up your Express app to return the right headers, like above.
 
-THe biggest reason why CORS errors can happen is because users do not capture errors correctly, and then return a correct HTTP response (with the headers above) in that error response.  It may look like a CORS error, but actually, your code is crashing and the automatic error response from HTTP API does not contain the CORS headers.
+The biggest reason why CORS errors can happen is because users do not capture errors correctly, and then return a correct HTTP response (with the headers above) in that error response.  It may look like a CORS error, but actually, your code is crashing and the automatic error response from HTTP API does not contain the CORS headers.
