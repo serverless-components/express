@@ -17,6 +17,7 @@ const {
   removeLambda,
   removeDomain,
   getMetrics,
+  retryIfRateExceeded,
 } = require('./utils');
 
 class Express extends Component {
@@ -59,18 +60,16 @@ class Express extends Component {
     await packageExpress(this, inputs, outputs);
 
     await Promise.all([
-      createOrUpdateFunctionRole(this, inputs, clients),
-      createOrUpdateMetaRole(this, inputs, clients, this.accountId),
+      retryIfRateExceeded(() => createOrUpdateFunctionRole(this, inputs, clients)),
+      retryIfRateExceeded(() => createOrUpdateMetaRole(this, inputs, clients, this.accountId)),
     ]);
 
-    await createOrUpdateLambda(this, inputs, clients);
-
-    await createOrUpdateAlias(this, inputs, clients);
-
-    await createOrUpdateApi(this, inputs, clients);
+    await retryIfRateExceeded(() => createOrUpdateLambda(this, inputs, clients));
+    await retryIfRateExceeded(() => createOrUpdateAlias(this, inputs, clients));
+    await retryIfRateExceeded(() => createOrUpdateApi(this, inputs, clients));
 
     if (inputs.domain) {
-      await createOrUpdateDomain(this, inputs, clients);
+      await retryIfRateExceeded(() => createOrUpdateDomain(this, inputs, clients));
     } else if (this.state.domain) {
       delete this.state.domain;
     }
