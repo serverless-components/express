@@ -1363,6 +1363,26 @@ const createOrUpdateAlias = async (instance, inputs, clients) => {
   return instance.state.aliasArn;
 };
 
+const retryIfRateExceeded = async (awsOperation, attempts = 10) => {
+  // after 10 attempts, just exist!
+  if (attempts === 0) {
+    throw new Error('Throttled by AWS despite 10 retry attempts.');
+  }
+  try {
+    return await awsOperation();
+  } catch (e) {
+    if (e.message.includes('Rate exceeded')) {
+      // sleep for a certain period according to
+      // the number of retry attempts performed so far
+      // the more attempts, the more sleep.
+      await sleep(Math.floor(10000 / attempts));
+
+      return retryIfRateExceeded(awsOperation, --attempts);
+    }
+    throw e;
+  }
+};
+
 module.exports = {
   generateId,
   sleep,
@@ -1379,4 +1399,5 @@ module.exports = {
   removeLambda,
   removeDomain,
   getMetrics,
+  retryIfRateExceeded,
 };
