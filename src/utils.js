@@ -35,7 +35,7 @@ const getDefaultDescription = (instance) => {
  * The ARN of the Lambda IAM Policy used for the default IAM Role
  */
 const getDefaultLambdaRolePolicyArn = () => {
-  return 'arn:aws:iam::aws:policy/AWSLambdaFullAccess';
+  return 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole';
 };
 
 /*
