@@ -98,6 +98,8 @@ inputs:
   memory: 512                    # (optional) lambda memory size.
   timeout: 10                    # (optional) lambda timeout.
   description: My Express App    # (optional) lambda & api gateway description.
+  tags:                          # (optional) a list of tags to apply to the function & API GW
+    service: "api"               #            example tag
   env:                           # (optional) env vars.
     DEBUG: 'express:*'           #            this express specific env var will print express debug logs.
   roleName: my-custom-role-name  # (optional) custom AWS IAM Role name for setting custom permissions.
@@ -245,4 +247,4 @@ app.use(function (req, res, next) {
 
 If you run into a CORS issue, ensure you are setting up your Express app to return the right headers, like above.
 
-THe biggest reason why CORS errors can happen is because users do not capture errors correctly, and then return a correct HTTP response (with the headers above) in that error response.  It may look like a CORS error, but actually, your code is crashing and the automatic error response from HTTP API does not contain the CORS headers.
+The biggest reason why CORS errors can happen is because users do not capture errors correctly, and then return a correct HTTP response (with the headers above) in that error response.  It may look like a CORS error, but actually, your code is crashing and the automatic error response from HTTP API does not contain the CORS headers.

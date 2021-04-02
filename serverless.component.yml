@@ -100,6 +100,10 @@ actions:
         type: env
         description: Environment variables to be passed into your AWS Lambda function runtime.
 
+      tags:
+        type: object
+        description: Tags to be applied to the AWS services
+
       layers:
         type: array
         items:

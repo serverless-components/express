@@ -45,6 +45,7 @@ it('should successfully update basic configuration', async () => {
   instanceYaml.inputs.memory = 3008;
   instanceYaml.inputs.timeout = 30;
   instanceYaml.inputs.env = { DEBUG: 'express:*' };
+  instanceYaml.inputs.tags = { service: 'api' };
 
   const instance = await sdk.deploy(instanceYaml, credentials);
 
@@ -53,6 +54,7 @@ it('should successfully update basic configuration', async () => {
   expect(lambda.MemorySize).toEqual(instanceYaml.inputs.memory);
   expect(lambda.Timeout).toEqual(instanceYaml.inputs.timeout);
   expect(lambda.Environment.Variables.DEBUG).toEqual(instanceYaml.inputs.env.DEBUG);
+  expect(lambda.Tags.service).toEqual(instanceYaml.inputs.tags.service);
 });
 
 it('should successfully update source code', async () => {
