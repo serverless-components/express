@@ -25,27 +25,6 @@ actions:
         type: number
         description: The memory size of your AWS Lambda function.
         default: 1024
-        allow:
-          - 128
-          - 192
-          - 256
-          - 320
-          - 384
-          - 448
-          - 512
-          - 576
-          - 704
-          - 768
-          - 832
-          - 1024
-          - 1280
-          - 1536
-          - 1792
-          - 2048
-          - 2240
-          - 2688
-          - 2944
-          - 3008
 
       timeout:
         type: number

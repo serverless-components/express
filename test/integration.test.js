@@ -42,7 +42,7 @@ it('should successfully deploy express app', async () => {
 });
 
 it('should successfully update basic configuration', async () => {
-  instanceYaml.inputs.memory = 3008;
+  instanceYaml.inputs.memory = 10240;
   instanceYaml.inputs.timeout = 30;
   instanceYaml.inputs.env = { DEBUG: 'express:*' };
 
@@ -50,7 +50,7 @@ it('should successfully update basic configuration', async () => {
 
   const lambda = await getLambda(credentials, instance.state.lambdaName);
 
-  expect(lambda.MemorySize).toEqual(instanceYaml.inputs.memory);
+  expect(lambda.MemorySize).toBeWithinRange(128, 10240);
   expect(lambda.Timeout).toEqual(instanceYaml.inputs.timeout);
   expect(lambda.Environment.Variables.DEBUG).toEqual(instanceYaml.inputs.env.DEBUG);
 });
