@@ -241,22 +241,56 @@ const packageExpress = async (instance, inputs) => {
 // };
 
 /*
- * Fetches a lambda function by ARN
+ * Fetches a Lambda configuration
  */
-const getLambda = async (clients, lambdaName) => {
+const getLambdaConfiguration = async (clients, lambdaName) => {
   try {
     const res = await clients.lambda
       .getFunctionConfiguration({
         FunctionName: lambdaName,
       })
       .promise();
-    return res.FunctionArn;
+    return res;
   } catch (e) {
     if (e.code === 'ResourceNotFoundException') {
       return null;
     }
     throw e;
   }
+};
+
+/*
+ * After updating the Lamda code or configuraton, it can take up to a minute for the
+ * update to provision. Because we can't make any other changes untill this is
+ * completed, we need to wait for it.
+ *
+ * https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Lambda.html#updateFunctionConfiguration-property
+ */
+const waitForLambdaUpdateToSucceed = async (instance, clients) => {
+  // The documentation states that it can take up to a minute, so we take some extra
+  // time here
+  let maxWait = 70000;
+  const wait = 5000;
+
+  do {
+    const config = await getLambdaConfiguration(clients, instance.state.lambdaName);
+    if (config.LastUpdateStatus === 'Successful') {
+      return;
+    }
+
+    await sleep(wait);
+    maxWait -= wait;
+  } while(maxWait > 0);
+
+  throw new Error('The Lambda \'LastUpdateStatus\' did not return to \'Successful\' within the time limit');
+}
+
+/*
+ * Fetches a lambda function by ARN
+ */
+const getLambda = async (clients, lambdaName) => {
+  const config = await getLambdaConfiguration(clients, lambdaName);
+  return config.FunctionArn;
 };
 
 const getVpcConfig = (vpcConfig) => {
@@ -891,6 +925,8 @@ const createOrUpdateLambda = async (instance, inputs, clients) => {
 
   console.log("AWS Lambda function found.  Updating it's configuration and code...");
   await updateLambdaConfig(instance, inputs, clients);
+  await waitForLambdaUpdateToSucceed(instance, clients);
+
   await updateLambdaCode(instance, inputs, clients);
   console.log(`AWS Lambda version "${instance.state.lambdaVersion}" published`);
   console.log(`AWS Lambda function updated with ARN: ${instance.state.lambdaArn}`);
