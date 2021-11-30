@@ -379,9 +379,17 @@ const updateLambdaCode = async (instance, inputs, clients) => {
     Publish: true,
   };
   functionCodeParams.ZipFile = await readFile(instance.state.zipPath);
-  const res = await clients.lambda.updateFunctionCode(functionCodeParams).promise();
-  instance.state.lambdaArn = res.FunctionArn;
-  instance.state.lambdaVersion = res.Version;
+  try {
+    const res = await clients.lambda.updateFunctionCode(functionCodeParams).promise();
+    instance.state.lambdaArn = res.FunctionArn;
+    instance.state.lambdaVersion = res.Version;
+  } catch (e) {
+    if (e.code === 'ResourceConflictException') {
+      await sleep(2000);
+      return await updateLambdaCode(instance, inputs, clients);
+    }
+    throw e;
+  }
 };
 
 /*
