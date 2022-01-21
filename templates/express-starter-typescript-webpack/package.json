@@ -14,7 +14,8 @@
     "webpack-cli": "^3.3.12"
   },
   "scripts": {
-    "build": "webpack && npm i --only=prod --prefix=build/",
+    "build": "webpack && npm run build-dependencies",
+    "build-dependencies": "cp package*.json build/ && npm i --only=prod --prefix=build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
