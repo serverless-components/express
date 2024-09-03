@@ -137,7 +137,7 @@ jobs:
           token: ${{ secrets.USER_GITHUB_TOKEN }}
 
       - name: Resolve last validated commit hash (for `git diff` purposes)
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.7
         continue-on-error: true
         with:
           name: last-validated-commit-hash
